@@ -1,0 +1,1163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>SAT Graphs — Simple Study</title>
+  <style>
+    :root{
+      --bg:#0b1220; --text:#eaf0ff; --muted:#97abd6;
+      --border:rgba(255,255,255,.12); --accent:#7aa2ff; --accent2:#55e3c2;
+      --shadow: 0 12px 26px rgba(0,0,0,.35);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; color:var(--text);
+      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:
+        radial-gradient(1100px 700px at 15% 0%, rgba(122,162,255,.14), transparent 60%),
+        radial-gradient(900px 700px at 90% 15%, rgba(85,227,194,.10), transparent 60%),
+        var(--bg);
+    }
+    header{max-width:1100px;margin:0 auto;padding:24px 16px 10px}
+    h1{margin:0;font-size:clamp(22px,3vw,32px)}
+    .sub{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:980px}
+    .wrap{max-width:1100px;margin:0 auto;padding:10px 16px 28px}
+    .card{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .tabs{display:flex;gap:10px;flex-wrap:wrap}
+    .tab{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:900;
+      font-size:13px;
+    }
+    .tab.active{
+      border-color:rgba(122,162,255,.55);
+      background:linear-gradient(135deg, rgba(122,162,255,.22), rgba(85,227,194,.14));
+    }
+    .miniTabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .miniTab{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:900;
+      font-size:12px;
+    }
+    .miniTab.active{border-color:rgba(85,227,194,.55); background:rgba(85,227,194,.10)}
+    .grid{display:grid;grid-template-columns: 1fr; gap:14px}
+    @media (min-width: 950px){ .grid{grid-template-columns: 0.9fr 1.1fr} }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:8px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-size:12px; font-weight:900;
+    }
+    .pill b{color:var(--text)}
+    ol{margin:8px 0 0; padding-left:18px}
+    li{margin:6px 0}
+    .panel{display:none}
+    .panel.show{display:block}
+    .twoCol{display:grid;grid-template-columns:1fr;gap:12px}
+    @media (min-width: 850px){ .twoCol{grid-template-columns:1fr 1fr} }
+
+    .canvasWrap{
+      border:1px solid var(--border);
+      border-radius:16px;
+      overflow:hidden;
+      background:rgba(0,0,0,.18);
+      margin-top:10px;
+    }
+    canvas{display:block;width:100%;height:260px}
+    .canvasCaption{margin-top:8px;color:var(--muted);font-size:12px}
+
+    .fc{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      padding:14px;
+      min-height:190px;
+      display:flex;flex-direction:column;justify-content:space-between;gap:10px;
+    }
+    .fcQ{font-weight:900;font-size:15px;white-space:pre-wrap}
+    .fcA{color:var(--muted);white-space:pre-wrap;display:none}
+    .fcImg{
+      width:100%;
+      max-height:240px;
+      object-fit:contain;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.15);
+      margin-top:10px;
+    }
+    .btn{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.05);
+      color:var(--text);
+      padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:900;
+    }
+    .btn.primary{
+      border-color:rgba(122,162,255,.55);
+      background:linear-gradient(135deg, rgba(122,162,255,.25), rgba(85,227,194,.14));
+    }
+    .hint{font-size:12px;color:var(--muted)}
+    a{color:var(--accent2);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .videoList{display:grid;gap:10px;margin-top:8px}
+    .videoItem{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      border-radius:14px;
+      padding:10px 12px;
+    }
+    footer{max-width:1100px;margin:0 auto;padding:0 16px 20px;color:rgba(255,255,255,.55);font-size:12px}
+    code{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      padding:2px 6px;border-radius:8px;
+      font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:12px;
+    }
+    select{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.05);
+      color:var(--text);
+      padding:10px 12px;border-radius:12px;
+      font-weight:900;
+      outline:none;
+    }
+    option{background:#0b1220}
+    .checks{
+      display:flex; flex-wrap:wrap; gap:10px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:rgba(255,255,255,.03);
+    }
+    .chk{
+      display:flex; gap:8px; align-items:center;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.15);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+    }
+    .chk input{transform:scale(1.15)}
+    .tiny{font-size:11px;color:rgba(255,255,255,.55)}
+
+    .examples{
+      margin-top:10px;
+      display:grid;
+      gap:12px;
+    }
+    .exCard{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      border-radius:16px;
+      padding:12px;
+      display:grid;
+      gap:10px;
+    }
+    .exTitle{font-weight:950}
+    .exEq{color:var(--muted); margin-top:4px; white-space:pre-wrap}
+    .exImgs{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    @media (min-width: 860px){
+      .exImgs{grid-template-columns:1fr 1fr}
+    }
+    .imgBox{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      background:rgba(0,0,0,.16);
+      padding:10px;
+    }
+    .imgCap{margin-top:8px;color:var(--muted);font-size:12px}
+    .imgInline{
+      width:100%;
+      height:auto;
+      border-radius:12px;
+      display:block;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>SAT Graphs — Simple Study</h1>
+  <div class="sub">
+    Transformation examples now show <b>images</b>: the <b>original</b> parent graph and the <b>transformed</b> graph,
+    both with <b>key points + intercepts labeled</b>.
+  </div>
+  <div class="tabs" style="margin-top:12px">
+    <button class="tab active" data-top="graphs">1) Graph Types</button>
+    <button class="tab" data-top="transforms">2) Transformations</button>
+    <button class="tab" data-top="flashcards">3) Flash Cards</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- GRAPH TYPES -->
+  <section id="top-graphs" class="panel show">
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="pill"><b>Pick a graph type</b></div>
+          <button class="btn" id="btnRandomGraph">Random</button>
+        </div>
+        <div class="miniTabs" id="graphTypeTabs"></div>
+        <div class="hint" style="margin-top:10px">Graphs are drawn locally (works offline).</div>
+      </div>
+
+      <div class="card">
+        <div class="pill" id="graphHeader"><b>—</b></div>
+
+        <div class="canvasWrap">
+          <canvas id="graphCanvas" width="900" height="520"></canvas>
+        </div>
+        <div class="canvasCaption" id="graphCanvasCaption">—</div>
+
+        <div class="miniTabs" id="graphInnerTabs" style="margin-top:12px">
+          <button class="miniTab active" data-inner="info">1) Info</button>
+          <button class="miniTab" data-inner="videos">2) Videos</button>
+          <button class="miniTab" data-inner="flash">3) Flash Cards</button>
+        </div>
+
+        <div id="graph-inner-info" class="panel show" style="margin-top:10px">
+          <ol id="graphInfoList"></ol>
+        </div>
+
+        <div id="graph-inner-videos" class="panel" style="margin-top:10px">
+          <div class="videoList" id="graphVideoList"></div>
+        </div>
+
+        <div id="graph-inner-flash" class="panel" style="margin-top:10px">
+          <div class="row" style="justify-content:space-between">
+            <div class="pill"><b>Deck:</b> <span id="graphDeckName">—</span></div>
+            <div class="row">
+              <button class="btn" id="btnGraphDeckTraits">Graph traits</button>
+              <button class="btn" id="btnGraphDeckMatch">Graph ⇄ equation (with images)</button>
+            </div>
+          </div>
+
+          <div style="margin-top:10px" class="fc">
+            <div>
+              <div class="fcQ" id="gfcQ">—</div>
+              <img id="gfcImgQ" class="fcImg" alt="" style="display:none"/>
+              <div class="fcA" id="gfcA">—</div>
+              <img id="gfcImgA" class="fcImg" alt="" style="display:none"/>
+            </div>
+            <div class="row" style="justify-content:space-between">
+              <div class="hint" id="gfcHint">—</div>
+              <div class="row">
+                <button class="btn" id="gfcPrev">Prev</button>
+                <button class="btn primary" id="gfcFlip">Flip</button>
+                <button class="btn" id="gfcNext">Next</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- TRANSFORMATIONS -->
+  <section id="top-transforms" class="panel">
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="pill"><b>Pick a transformation topic</b></div>
+          <button class="btn" id="btnRandomTrans">Random</button>
+        </div>
+        <div class="miniTabs" id="transTypeTabs"></div>
+        <div class="hint" style="margin-top:10px">Main form: <code>g(x)=a·f(b(x−h))+k</code></div>
+      </div>
+
+      <div class="card">
+        <div class="pill" id="transHeader"><b>—</b></div>
+
+        <div class="miniTabs" id="transInnerTabs">
+          <button class="miniTab active" data-tinner="info">1) Info</button>
+          <button class="miniTab" data-tinner="examples">2) Examples (images)</button>
+          <button class="miniTab" data-tinner="videos">3) Videos</button>
+          <button class="miniTab" data-tinner="flash">4) Flash Cards</button>
+        </div>
+
+        <div id="trans-inner-info" class="panel show" style="margin-top:10px">
+          <ol id="transInfoList"></ol>
+        </div>
+
+        <div id="trans-inner-examples" class="panel" style="margin-top:10px">
+          <div class="pill"><b>Examples</b> (original + transformed)</div>
+          <div class="examples" id="transExamples"></div>
+          <div class="tiny" style="margin-top:10px">Each image includes labeled intercepts and key points.</div>
+        </div>
+
+        <div id="trans-inner-videos" class="panel" style="margin-top:10px">
+          <div class="videoList" id="transVideoList"></div>
+        </div>
+
+        <div id="trans-inner-flash" class="panel" style="margin-top:10px">
+          <div class="row" style="justify-content:space-between">
+            <div class="pill"><b>Deck:</b> Transformation flashcards (rules + examples)</div>
+            <button class="btn" id="btnTransDeckMode">Mode: Mixed</button>
+          </div>
+
+          <div style="margin-top:10px" class="fc">
+            <div>
+              <div class="fcQ" id="tfcQ">—</div>
+              <img id="tfcImgQ" class="fcImg" alt="" style="display:none"/>
+              <div class="fcA" id="tfcA">—</div>
+              <img id="tfcImgA" class="fcImg" alt="" style="display:none"/>
+            </div>
+            <div class="row" style="justify-content:space-between">
+              <div class="hint" id="tfcHint">—</div>
+              <div class="row">
+                <button class="btn" id="tfcPrev">Prev</button>
+                <button class="btn primary" id="tfcFlip">Flip</button>
+                <button class="btn" id="tfcNext">Next</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FLASH CARDS -->
+  <section id="top-flashcards" class="panel">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="pill"><b>Flash Cards</b> (pick multiple categories)</div>
+          <div class="sub" style="margin:10px 0 0">
+            Choose: graphs vs transformations • check categories • choose what shows first.
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn" id="fcShuffle">Shuffle</button>
+          <button class="btn" id="fcRandom">Random</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <div class="pill"><b>Source</b></div>
+        <select id="fcSource">
+          <option value="both">Graphs + Transformations</option>
+          <option value="graphs">Graphs only</option>
+          <option value="transforms">Transformations only</option>
+        </select>
+
+        <div class="pill"><b>Show first</b></div>
+        <select id="fcFront">
+          <option value="graph">Graph</option>
+          <option value="equation">Equation</option>
+          <option value="characteristic">Characteristic</option>
+        </select>
+
+        <button class="btn" id="fcApply">Apply</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="pill"><b>Categories</b> (checkboxes)</div>
+        <div class="checks" id="fcCategoryChecks">
+          <label class="chk"><input type="checkbox" value="match" checked> Graph ⇄ Equation</label>
+          <label class="chk"><input type="checkbox" value="characteristics" checked> Equation ⇄ Characteristics</label>
+          <label class="chk"><input type="checkbox" value="transExamples" checked> Transform examples (images)</label>
+          <label class="chk"><input type="checkbox" value="other"> Other (extra Q’s)</label>
+        </div>
+        <div class="tiny" style="margin-top:6px">Transform example cards show original and transformed images when relevant.</div>
+      </div>
+
+      <div style="margin-top:12px" class="twoCol">
+        <div class="fc">
+          <div>
+            <div class="fcQ" id="fcQ">—</div>
+            <img id="fcImgQ" class="fcImg" alt="" style="display:none"/>
+            <div class="fcA" id="fcA">—</div>
+            <img id="fcImgA" class="fcImg" alt="" style="display:none"/>
+          </div>
+          <div class="row" style="justify-content:space-between">
+            <div class="hint" id="fcHint">—</div>
+            <div class="row">
+              <button class="btn" id="fcPrev">Prev</button>
+              <button class="btn primary" id="fcFlip">Flip</button>
+              <button class="btn" id="fcNext">Next</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="box-shadow:none">
+          <div class="pill"><b>Tip</b></div>
+          <ol>
+            <li>For transformations, look at how labeled points move (e.g., the intercept).</li>
+            <li>Inside changes (x−h, bx) affect x-values; outside changes (a·, +k) affect y-values.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>Everything is in this one HTML file.</footer>
+
+<script>
+/* =========================
+   CANVAS GRAPHING + LABELS
+   ========================= */
+function drawAxes(ctx, w, h, scale){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillRect(0,0,w,h);
+
+  const cx=w/2, cy=h/2;
+  ctx.lineWidth = 1;
+
+  for(let x=0; x<=w; x+=scale){
+    ctx.strokeStyle = (Math.abs(x-cx)<0.5) ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.07)";
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
+  }
+  for(let y=0; y<=h; y+=scale){
+    ctx.strokeStyle = (Math.abs(y-cy)<0.5) ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.07)";
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+  }
+
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(w,cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,h); ctx.stroke();
+
+  ctx.fillStyle="rgba(255,255,255,0.55)";
+  ctx.font = "14px ui-sans-serif, system-ui";
+  ctx.fillText("x", w-16, cy-10);
+  ctx.fillText("y", cx+10, 18);
+}
+
+function plotFn(ctx, w, h, fn, safe, opts){
+  const scale = opts.scale ?? 38;
+  const xMin = opts.xMin ?? -8;
+  const xMax = opts.xMax ?? 8;
+  const step = opts.step ?? 0.02;
+  const cx=w/2, cy=h/2;
+
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(122,162,255,0.90)";
+  ctx.beginPath();
+  let started=false;
+
+  for(let x=xMin; x<=xMax; x+=step){
+    if(!safe(x)){ started=false; continue; }
+    const y = fn(x);
+    if(!Number.isFinite(y) || Math.abs(y)>1e4){ started=false; continue; }
+
+    const px = cx + x*scale;
+    const py = cy - y*scale;
+    if(py < -1500 || py > h+1500){ started=false; continue; }
+
+    if(!started){ ctx.moveTo(px,py); started=true; }
+    else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+}
+
+function drawLabeledPoints(ctx, w, h, scale, points){
+  if(!points || !points.length) return;
+  const cx=w/2, cy=h/2;
+
+  ctx.save();
+  ctx.font = "14px ui-sans-serif, system-ui";
+  ctx.textBaseline = "middle";
+
+  for(const p of points){
+    const px = cx + p.x*scale;
+    const py = cy - p.y*scale;
+
+    ctx.fillStyle = "rgba(85,227,194,0.95)";
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI*2);
+    ctx.fill();
+
+    const label = p.label ?? `(${p.x}, ${p.y})`;
+    const padX=6, padY=4;
+    const tx = px + 10;
+    const ty = py - 12;
+
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    const m = ctx.measureText(label);
+    const bw = m.width + padX*2;
+    const bh = 18 + padY*2;
+
+    let bx = tx, by = ty;
+    if(bx + bw > w-6) bx = px - bw - 10;
+    if(by < 6) by = py + 10;
+    if(by + bh > h-6) by = py - bh - 10;
+
+    // rounded rect
+    const r=8;
+    ctx.beginPath();
+    ctx.moveTo(bx+r,by);
+    ctx.arcTo(bx+bw,by,bx+bw,by+bh,r);
+    ctx.arcTo(bx+bw,by+bh,bx,by+bh,r);
+    ctx.arcTo(bx,by+bh,bx,by,r);
+    ctx.arcTo(bx,by,bx+bw,by,r);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(234,240,255,0.95)";
+    ctx.fillText(label, bx+padX, by+bh/2);
+  }
+
+  ctx.restore();
+}
+
+function renderGraphToCanvas(canvas, graph){
+  const ctx = canvas.getContext("2d");
+  const w=canvas.width, h=canvas.height;
+  const scale = graph.plot?.scale ?? 42;
+
+  drawAxes(ctx, w, h, scale);
+  plotFn(ctx, w, h, graph.fn, graph.safe, {
+    scale,
+    xMin: graph.plot?.xMin ?? -7,
+    xMax: graph.plot?.xMax ?? 7,
+    step: graph.plot?.step ?? 0.02
+  });
+  drawLabeledPoints(ctx, w, h, scale, graph.keyPoints || []);
+}
+
+function makeThumbDataURL(graph){
+  const c = document.createElement("canvas");
+  c.width = 520;
+  c.height = 320;
+  renderGraphToCanvas(c, graph);
+  return c.toDataURL("image/png");
+}
+
+/* =========================
+   DATA: GRAPHS (with keyPoints)
+   ========================= */
+const e = Math.E;
+const GRAPH_TYPES = [
+  {
+    id:"quad", title:"Quadratic (x²)", equation:"y = x²",
+    fn:(x)=>x*x, safe:(x)=>Number.isFinite(x), plot:{xMin:-6,xMax:6,scale:42},
+    keyPoints:[{x:0,y:0,label:"(0,0)"},{x:1,y:1,label:"(1,1)"},{x:-1,y:1,label:"(-1,1)"},{x:2,y:4,label:"(2,4)"},{x:-2,y:4,label:"(-2,4)"}],
+    info:["Shape: U-shaped parabola opening up","Vertex: (0, 0)","Axis of symmetry: y-axis","Domain: all real x","Range: y ≥ 0","Intercepts: (0,0) is both x- and y-intercept","End behavior: x→±∞ ⇒ y→∞"],
+    videos:[{label:"Khan Academy: Quadratic functions (search)", url:"https://www.khanacademy.org/search?page_search_query=quadratic%20functions"},{label:"YouTube (search): graph of y=x^2", url:"https://www.youtube.com/results?search_query=graph+y%3Dx%5E2"}],
+    flash_traits:[{q:"Vertex of y=x²?", a:"(0,0)"},{q:"Range of y=x²?", a:"y ≥ 0"},{q:"Is y=x² even/odd/neither?", a:"Even (symmetric about y-axis)"},{q:"End behavior?", a:"x→±∞ ⇒ y→∞"}],
+    key:{ domain:"all real x", range:"y ≥ 0", vertex:"(0,0)", intercepts:"(0,0)", points:"(±1,1), (±2,4)" }
+  },
+  {
+    id:"recip", title:"Reciprocal (1/x)", equation:"y = 1/x",
+    fn:(x)=>1/x, safe:(x)=>Math.abs(x)>1e-5 && Number.isFinite(x), plot:{xMin:-8,xMax:8,scale:46,step:0.01},
+    keyPoints:[{x:1,y:1,label:"(1,1)"},{x:-1,y:-1,label:"(-1,-1)"},{x:2,y:0.5,label:"(2,1/2)"},{x:-2,y:-0.5,label:"(-2,-1/2)"}],
+    info:["Shape: two branches (Quadrants I and III)","Vertical asymptote: x = 0","Horizontal asymptote: y = 0","Domain: x ≠ 0","Range: y ≠ 0","Intercepts: none","End behavior: x→±∞ ⇒ y→0; x→0± ⇒ y→±∞"],
+    videos:[{label:"Khan Academy: reciprocal function (search)", url:"https://www.khanacademy.org/search?page_search_query=reciprocal%20function"},{label:"YouTube (search): graph y=1/x", url:"https://www.youtube.com/results?search_query=graph+y%3D1%2Fx"}],
+    flash_traits:[{q:"Asymptotes of y=1/x?", a:"x=0 and y=0"},{q:"Domain?", a:"x ≠ 0"},{q:"Range?", a:"y ≠ 0"},{q:"Intercepts?", a:"None"}],
+    key:{ domain:"x ≠ 0", range:"y ≠ 0", intercepts:"none", points:"(1,1), (-1,-1)", asymptotes:"x=0, y=0" }
+  },
+  {
+    id:"ln", title:"Natural Log (ln x)", equation:"y = ln(x)",
+    fn:(x)=>Math.log(x), safe:(x)=>x>1e-5 && Number.isFinite(x), plot:{xMin:-2,xMax:8,scale:46},
+    keyPoints:[{x:1,y:0,label:"(1,0)"},{x:e,y:1,label:"(e,1)"},{x:1/e,y:-1,label:"(1/e,-1)"}],
+    info:["Domain: x > 0","Vertical asymptote: x = 0","Intercept: (1, 0) because ln(1)=0","Range: all real y","Behavior: slow growth for large x","Sign: ln(x)<0 for 0<x<1, ln(x)>0 for x>1","Inverse of: y = e^x"],
+    videos:[{label:"Khan Academy: logarithms (search)", url:"https://www.khanacademy.org/search?page_search_query=logarithms"},{label:"YouTube (search): graph ln x", url:"https://www.youtube.com/results?search_query=graph+ln+x"}],
+    flash_traits:[{q:"Domain of ln(x)?", a:"x>0"},{q:"Vertical asymptote?", a:"x=0"},{q:"x-intercept of ln(x)?", a:"(1,0)"},{q:"Inverse function?", a:"y=e^x"}],
+    key:{ domain:"x > 0", range:"all real y", intercepts:"(1,0)", points:"(e,1)", asymptotes:"x=0" }
+  },
+  {
+    id:"abs", title:"Absolute Value (|x|)", equation:"y = |x|",
+    fn:(x)=>Math.abs(x), safe:(x)=>Number.isFinite(x), plot:{xMin:-6,xMax:6,scale:42},
+    keyPoints:[{x:0,y:0,label:"(0,0)"},{x:1,y:1,label:"(1,1)"},{x:-1,y:1,label:"(-1,1)"},{x:2,y:2,label:"(2,2)"},{x:-2,y:2,label:"(-2,2)"}],
+    info:["Shape: V-shape with a corner","Vertex: (0,0)","Domain: all real x","Range: y ≥ 0","Symmetry: even (y-axis symmetry)","Piecewise: |x| = x (x≥0), -x (x<0)","Slopes: left branch slope -1, right branch slope +1"],
+    videos:[{label:"Khan Academy: absolute value graphs (search)", url:"https://www.khanacademy.org/search?page_search_query=absolute%20value%20graphs"},{label:"YouTube (search): graph y=|x|", url:"https://www.youtube.com/results?search_query=graph+y%3D%7Cx%7C"}],
+    flash_traits:[{q:"Vertex of y=|x|?", a:"(0,0)"},{q:"Range?", a:"y ≥ 0"},{q:"What makes this graph unique?", a:"It has a corner (not smooth) at the vertex."}],
+    key:{ domain:"all real x", range:"y ≥ 0", vertex:"(0,0)", intercepts:"(0,0)", points:"(±1,1), (±2,2)" }
+  },
+  {
+    id:"sqrt", title:"Square Root (√x)", equation:"y = √x",
+    fn:(x)=>Math.sqrt(x), safe:(x)=>x>=0 && Number.isFinite(x), plot:{xMin:-2,xMax:10,scale:46},
+    keyPoints:[{x:0,y:0,label:"(0,0)"},{x:1,y:1,label:"(1,1)"},{x:4,y:2,label:"(4,2)"},{x:9,y:3,label:"(9,3)"}],
+    info:["Domain: x ≥ 0","Range: y ≥ 0","Starts at: (0,0)","Key points: (1,1), (4,2), (9,3)","Shape: increasing, concave down (rises then flattens)","No negative x values in the parent graph"],
+    videos:[{label:"Khan Academy: square root functions (search)", url:"https://www.khanacademy.org/search?page_search_query=square%20root%20functions"},{label:"YouTube (search): graph y=sqrt(x)", url:"https://www.youtube.com/results?search_query=graph+y%3Dsqrt%28x%29"}],
+    flash_traits:[{q:"Domain of √x?", a:"x ≥ 0"},{q:"Range of √x?", a:"y ≥ 0"},{q:"Key point at x=4?", a:"(4,2)"}],
+    key:{ domain:"x ≥ 0", range:"y ≥ 0", intercepts:"(0,0)", points:"(1,1), (4,2), (9,3)" }
+  },
+  {
+    id:"exp", title:"Exponential (e^x)", equation:"y = e^x",
+    fn:(x)=>Math.exp(x), safe:(x)=>Number.isFinite(x) && x<10, plot:{xMin:-6,xMax:4,scale:46},
+    keyPoints:[{x:0,y:1,label:"(0,1)"},{x:1,y:e,label:"(1,e)"},{x:-1,y:1/e,label:"(-1,1/e)"}],
+    info:["Domain: all real x","Range: y > 0","y-intercept: (0,1)","Horizontal asymptote: y = 0","Behavior: grows fast for x>0, approaches 0 for x→−∞","Inverse of: y = ln(x)"],
+    videos:[{label:"Khan Academy: exponential functions (search)", url:"https://www.khanacademy.org/search?page_search_query=exponential%20functions"},{label:"YouTube (search): graph y=e^x", url:"https://www.youtube.com/results?search_query=graph+y%3De%5Ex"}],
+    flash_traits:[{q:"Range of e^x?", a:"y > 0"},{q:"y-intercept?", a:"(0,1)"},{q:"Horizontal asymptote?", a:"y=0"}],
+    key:{ domain:"all real x", range:"y > 0", intercepts:"y-intercept (0,1)", points:"(1,e)", asymptotes:"y=0" }
+  }
+  ,
+  {
+    id:"recip2", title:"Reciprocal Squared (1/x²)", equation:"y = 1/x²",
+    fn:(x)=>1/(x*x),
+    safe:(x)=>Math.abs(x)>1e-5 && Number.isFinite(x),
+    plot:{xMin:-8,xMax:8,scale:46,step:0.01},
+    keyPoints:[
+      {x:1,y:1,label:"(1,1)"},
+      {x:-1,y:1,label:"(-1,1)"},
+      {x:2,y:0.25,label:"(2,1/4)"},
+      {x:-2,y:0.25,label:"(-2,1/4)"}
+    ],
+    info:[
+      "Shape: two branches above the x-axis (Quadrants I and II)",
+      "Vertical asymptote: x = 0",
+      "Horizontal asymptote: y = 0",
+      "Domain: x ≠ 0",
+      "Range: y > 0",
+      "Intercepts: none",
+      "Even function (y-axis symmetry)"
+    ],
+    videos:[
+      {label:"Khan Academy: 1/x^2 (search)", url:"https://www.khanacademy.org/search?page_search_query=1%2Fx%5E2"},
+      {label:"YouTube (search): graph y=1/x^2", url:"https://www.youtube.com/results?search_query=graph+y%3D1%2Fx%5E2"}
+    ],
+    flash_traits:[
+      {q:"Range of y=1/x²?", a:"y > 0"},
+      {q:"Does y=1/x² ever cross the x-axis?", a:"No"},
+      {q:"Is y=1/x² even or odd?", a:"Even"}
+    ],
+    key:{ domain:"x ≠ 0", range:"y > 0", intercepts:"none", asymptotes:"x=0, y=0", points:"(±1,1), (±2,1/4)" }
+  },
+  {
+    id:"cubic", title:"Cubic (x³)", equation:"y = x³",
+    fn:(x)=>x*x*x,
+    safe:(x)=>Number.isFinite(x),
+    plot:{xMin:-4,xMax:4,scale:42},
+    keyPoints:[
+      {x:0,y:0,label:"(0,0)"},
+      {x:1,y:1,label:"(1,1)"},
+      {x:-1,y:-1,label:"(-1,-1)"},
+      {x:2,y:8,label:"(2,8)"},
+      {x:-2,y:-8,label:"(-2,-8)"}
+    ],
+    info:[
+      "Shape: S-shaped curve",
+      "Passes through the origin",
+      "Domain: all real x",
+      "Range: all real y",
+      "Odd function (origin symmetry)",
+      "Always increasing",
+      "Intercepts: (0,0) is both x- and y-intercept"
+    ],
+    videos:[
+      {label:"Khan Academy: cubic functions (search)", url:"https://www.khanacademy.org/search?page_search_query=cubic%20functions"},
+      {label:"YouTube (search): graph y=x^3", url:"https://www.youtube.com/results?search_query=graph+y%3Dx%5E3"}
+    ],
+    flash_traits:[
+      {q:"Intercepts of y=x³?", a:"(0,0)"},
+      {q:"Is y=x³ even or odd?", a:"Odd"},
+      {q:"End behavior?", a:"x→∞ ⇒ y→∞; x→−∞ ⇒ y→−∞"}
+    ],
+    key:{ domain:"all real x", range:"all real y", intercepts:"(0,0)", points:"(±1,±1), (±2,±8)" }
+  }
+
+  ,
+  {
+    id:"linear", title:"Linear (x)", equation:"y = x",
+    fn:(x)=>x,
+    safe:(x)=>Number.isFinite(x),
+    plot:{xMin:-7,xMax:7,scale:42},
+    keyPoints:[
+      {x:0,y:0,label:"(0,0)"},
+      {x:1,y:1,label:"(1,1)"},
+      {x:-1,y:-1,label:"(-1,-1)"},
+      {x:2,y:2,label:"(2,2)"},
+      {x:-2,y:-2,label:"(-2,-2)"}
+    ],
+    info:[
+      "Straight line through the origin",
+      "Slope: 1 (rises 1 for every 1 right)",
+      "Domain: all real x",
+      "Range: all real y",
+      "Odd function (origin symmetry)",
+      "Intercepts: (0,0) is both x- and y-intercept"
+    ],
+    videos:[
+      {label:"Khan Academy: linear functions (search)", url:"https://www.khanacademy.org/search?page_search_query=linear%20functions"},
+      {label:"YouTube (search): graph y=x", url:"https://www.youtube.com/results?search_query=graph+y%3Dx"}
+    ],
+    flash_traits:[
+      {q:"Slope of y=x?", a:"1"},
+      {q:"Intercepts of y=x?", a:"(0,0)"},
+      {q:"Is y=x even or odd?", a:"Odd"}
+    ],
+    key:{ domain:"all real x", range:"all real y", intercepts:"(0,0)", points:"(±1,±1), (±2,±2)" }
+  }
+
+];
+
+// auto: thumbnails + match deck + characteristics summary
+for(const g of GRAPH_TYPES){
+  g.thumb = makeThumbDataURL(g);
+  g.flash_match = [
+    { q:"What equation matches this graph?", qImg:g.thumb, a:g.equation },
+    { q:`Sketch/visualize this: ${g.equation}\nWhat does the graph look like?`, a:"(Flip for the graph image.)", aImg:g.thumb }
+  ];
+  g.characteristicsSummary =
+    `Domain: ${g.key?.domain ?? "—"}\n`+
+    `Range: ${g.key?.range ?? "—"}\n`+
+    (g.key?.vertex ? `Vertex: ${g.key.vertex}\n` : "")+
+    (g.key?.intercepts ? `Intercept(s): ${g.key.intercepts}\n` : "")+
+    (g.key?.asymptotes ? `Asymptote(s): ${g.key.asymptotes}\n` : "")+
+    (g.key?.points ? `Key point(s): ${g.key.points}` : "");
+}
+
+/* =========================
+   TRANSFORMATION ENGINE (to generate transformed graphs + labeled points)
+   g(x) = a * f( b*(x - h) ) + k
+   ========================= */
+function makeTransformedGraph(base, params){
+  const a = params.a ?? 1;
+  const b = params.b ?? 1;
+  const h = params.h ?? 0;
+  const k = params.k ?? 0;
+
+  const fn = (x)=>{
+    const xp = b*(x - h);
+    return a*base.fn(xp) + k;
+  };
+  const safe = (x)=>{
+    const xp = b*(x - h);
+    return base.safe(xp);
+  };
+
+  // Transform points: x' = b*(x - h) => x = x'/b + h ; y = a*y' + k
+  const pts = (base.keyPoints || []).map(p=>{
+    const nx = (p.x / b) + h;
+    const ny = a*p.y + k;
+    return {x:nx, y:ny, label:`(${fmt(nx)}, ${fmt(ny)})`};
+  });
+
+  // plot settings: copy base, but widen a bit so you can see shifts
+  const plot = Object.assign({}, base.plot || {});
+  plot.xMin = (base.plot?.xMin ?? -7) - 2;
+  plot.xMax = (base.plot?.xMax ?? 7) + 2;
+
+  return {
+    id: base.id + "_t",
+    title: base.title,
+    equation: params.displayEq ?? "g(x) = a·f(b(x−h))+k",
+    fn, safe, plot,
+    keyPoints: pts
+  };
+}
+function fmt(n){
+  if(!Number.isFinite(n)) return ""+n;
+  const r = Math.round(n*1000)/1000;
+  // clean -0
+  return (Object.is(r, -0)) ? "0" : ""+r;
+}
+
+/* =========================
+   DATA: TRANSFORMATIONS + EXAMPLES (with parameters)
+   ========================= */
+function exampleSet(topicId){
+  if(topicId==="shifts"){
+    return [
+      {desc:"Shift right 3, up 2", a:1,b:1,h:3,k:2, eq:`g(x) = f(x − 3) + 2`},
+      {desc:"Shift left 4, down 1", a:1,b:1,h:-4,k:-1, eq:`g(x) = f(x + 4) − 1`}
+    ];
+  }
+  if(topicId==="reflections"){
+    return [
+      {desc:"Reflect over x-axis", a:-1,b:1,h:0,k:0, eq:`g(x) = −f(x)`},
+      {desc:"Reflect over y-axis", a:1,b:-1,h:0,k:0, eq:`g(x) = f(−x)`}
+    ];
+  }
+  if(topicId==="stretches"){
+    return [
+      {desc:"Vertical stretch by 2", a:2,b:1,h:0,k:0, eq:`g(x) = 2f(x)`},
+      {desc:"Horizontal compress by 2", a:1,b:2,h:0,k:0, eq:`g(x) = f(2x)`}
+    ];
+  }
+  if(topicId==="combo"){
+    return [
+      {desc:"Right 2, vertical stretch 3, down 1", a:3,b:1,h:2,k:-1, eq:`g(x) = 3f(x − 2) − 1`},
+      {desc:"Left 1, reflect x-axis, up 4", a:-1,b:1,h:-1,k:4, eq:`g(x) = −f(x + 1) + 4`}
+    ];
+  }
+  return [];
+}
+
+const TRANSFORM_TOPICS = [
+  { id:"shifts", title:"Shifts (h, k)",
+    info:[
+      "Vertical shift: f(x) + k goes up if k>0, down if k<0",
+      "Horizontal shift: f(x − h) goes right if h>0, left if h<0",
+      "Inside changes (x−h) move opposite the sign you see",
+      "Outside changes (+k) move with the sign you see"
+    ],
+    videos:[
+      {label:"Khan Academy: graph transformations (search)", url:"https://www.khanacademy.org/search?page_search_query=graph%20transformations%20shifts"},
+      {label:"YouTube (search): shifts f(x-h)+k", url:"https://www.youtube.com/results?search_query=graph+shifts+f%28x-h%29%2Bk"}
+    ]
+  },
+  { id:"reflections", title:"Reflections",
+    info:[
+      "Reflect over x-axis: -f(x) (all y-values negate)",
+      "Reflect over y-axis: f(-x) (left/right swap)",
+      "Both: -f(-x)",
+      "A negative outside (a<0) reflects over x-axis"
+    ],
+    videos:[
+      {label:"Khan Academy: reflections (search)", url:"https://www.khanacademy.org/search?page_search_query=reflections%20function%20transformations"},
+      {label:"YouTube (search): f(-x) and -f(x)", url:"https://www.youtube.com/results?search_query=f%28-x%29+and+-f%28x%29+transformations"}
+    ]
+  },
+  { id:"stretches", title:"Stretches & Shrinks (a, b)",
+    info:[
+      "Vertical scale: a·f(x) (|a|>1 stretch, 0<|a|<1 shrink; a<0 also reflects over x-axis)",
+      "Horizontal scale: f(bx) (|b|>1 compress, 0<|b|<1 stretch)",
+      "Horizontal is the “opposite feel”: f(2x) makes the graph half as wide"
+    ],
+    videos:[
+      {label:"Khan Academy: stretch/compress (search)", url:"https://www.khanacademy.org/search?page_search_query=vertical%20stretch%20horizontal%20compression%20functions"},
+      {label:"YouTube (search): vertical stretch horizontal compression", url:"https://www.youtube.com/results?search_query=vertical+stretch+horizontal+compression+functions"}
+    ]
+  },
+  { id:"combo", title:"All-in-one form (a, b, h, k)",
+    info:[
+      "Standard form: g(x)=a·f(b(x−h))+k",
+      "Order: inside first (x−h then ×b), then outside (×a then +k)",
+      "a: vertical scale (and x-axis reflection if negative)",
+      "b: horizontal scale (and y-axis reflection if negative)",
+      "h: horizontal shift; k: vertical shift"
+    ],
+    videos:[
+      {label:"Khan Academy: transformations overview (search)", url:"https://www.khanacademy.org/search?page_search_query=a*f%28b%28x-h%29%29%2Bk"},
+      {label:"YouTube (search): a f(b(x-h))+k", url:"https://www.youtube.com/results?search_query=a+f%28b%28x-h%29%29%2Bk+transformations"}
+    ]
+  }
+];
+
+// Build examples + images + flashcards
+for(const t of TRANSFORM_TOPICS){
+  const baseExamples = exampleSet(t.id);
+
+  t.examples = []; // visual examples cards
+  t.flash_rules = t.info.map((line, i)=>({q:`Rule #${i+1}:`, a:line}));
+  t.flash_examples = [];
+
+  for(const g of GRAPH_TYPES){
+    for(const ex of baseExamples){
+      const trans = makeTransformedGraph(g, {
+        a:ex.a, b:ex.b, h:ex.h, k:ex.k,
+        displayEq: ex.eq.replaceAll("f", "(" + g.equation.replace("y = ","") + ")")
+      });
+
+      // thumbs for original and transformed (with labels)
+      const origImg = g.thumb; // already labeled
+      const transImg = makeThumbDataURL(trans);
+
+      // store examples for the Examples tab
+      t.examples.push({
+        graphTitle:g.title,
+        baseEq:g.equation,
+        task:ex.desc,
+        displayEq: trans.equation,
+        origImg,
+        transImg
+      });
+
+      // flashcards from examples: include images
+      t.flash_examples.push({
+        q:`[${t.title}]\nBase: ${g.equation}\nTask: ${ex.desc}\n\nWrite g(x):`,
+        qImg: origImg,
+        a: trans.equation,
+        aImg: transImg
+      });
+      t.flash_examples.push({
+        q:`[${t.title}]\nGiven: ${trans.equation}\n\nWhat happened to the graph?`,
+        qImg: transImg,
+        a: ex.desc + `\n\n(Original shown on flip.)`,
+        aImg: origImg
+      });
+    }
+  }
+}
+
+/* =========================
+   DOM HELPERS
+   ========================= */
+const $ = (s)=>document.querySelector(s);
+const $$ = (s)=>Array.from(document.querySelectorAll(s));
+const pick = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+function setTopTab(name){
+  $$(".tab").forEach(b=>b.classList.toggle("active", b.dataset.top===name));
+  ["graphs","transforms","flashcards"].forEach(t=>$(`#top-${t}`).classList.toggle("show", t===name));
+}
+function setCardMedia(imgEl, imgDataUrl){
+  if(imgDataUrl){ imgEl.src=imgDataUrl; imgEl.style.display="block"; }
+  else { imgEl.removeAttribute("src"); imgEl.style.display="none"; }
+}
+
+/* =========================
+   GRAPH TYPES UI
+   ========================= */
+let curGraph = GRAPH_TYPES[0], gDeck="traits", gIdx=0, gFlip=false;
+function buildGraphTypeTabs(){
+  const wrap=$("#graphTypeTabs");
+  wrap.innerHTML = GRAPH_TYPES.map(g=>`<button class="miniTab ${g.id===curGraph.id?"active":""}" data-gid="${g.id}">${g.title}</button>`).join("");
+  wrap.querySelectorAll("button").forEach(btn=>btn.addEventListener("click", ()=>{
+    curGraph = GRAPH_TYPES.find(x=>x.id===btn.dataset.gid) || GRAPH_TYPES[0];
+    buildGraphTypeTabs(); renderGraphSection();
+  }));
+}
+function setGraphInnerTab(which){
+  $("#graphInnerTabs").querySelectorAll(".miniTab").forEach(b=>b.classList.toggle("active", b.dataset.inner===which));
+  ["info","videos","flash"].forEach(x=>$("#graph-inner-"+x).classList.toggle("show", x===which));
+}
+function getGraphDeck(){ return (gDeck==="traits") ? (curGraph.flash_traits||[]) : (curGraph.flash_match||[]); }
+function renderGraphSection(){
+  $("#graphHeader").innerHTML = `<b>${curGraph.title}</b>&nbsp; • &nbsp;${curGraph.equation}`;
+  $("#graphInfoList").innerHTML = curGraph.info.map(line=>`<li>${line}</li>`).join("");
+  $("#graphVideoList").innerHTML = (curGraph.videos||[]).map(v=>`<div class="videoItem"><b>${v.label}</b><div class="hint" style="margin-top:4px"><a href="${v.url}" target="_blank" rel="noopener">Open</a></div></div>`).join("");
+  renderGraphToCanvas($("#graphCanvas"), curGraph);
+  $("#graphCanvasCaption").textContent = `Graph of ${curGraph.equation} (key points labeled)`;
+  gIdx=0; gFlip=false; renderGraphFlash();
+}
+function renderGraphFlash(){
+  const deck=getGraphDeck();
+  $("#graphDeckName").textContent = (gDeck==="traits") ? "Graph traits" : "Graph ⇄ equation (with images)";
+  if(!deck.length){
+    $("#gfcQ").textContent="No cards in this deck yet."; $("#gfcA").textContent=""; $("#gfcA").style.display="none";
+    setCardMedia($("#gfcImgQ"),null); setCardMedia($("#gfcImgA"),null); $("#gfcHint").textContent=""; return;
+  }
+  const card=deck[gIdx%deck.length];
+  $("#gfcQ").textContent=card.q||""; setCardMedia($("#gfcImgQ"), card.qImg||null);
+  $("#gfcA").textContent=card.a||""; $("#gfcA").style.display=gFlip?"block":"none";
+  setCardMedia($("#gfcImgA"), gFlip ? (card.aImg||null) : null);
+  $("#gfcHint").textContent=`Card ${gIdx+1} of ${deck.length}`;
+}
+
+/* =========================
+   TRANSFORMATIONS UI (examples include images)
+   ========================= */
+let curTrans=TRANSFORM_TOPICS[0], tIdx=0, tFlip=false, transDeckMode="mixed";
+function buildTransTabs(){
+  const wrap=$("#transTypeTabs");
+  wrap.innerHTML = TRANSFORM_TOPICS.map(t=>`<button class="miniTab ${t.id===curTrans.id?"active":""}" data-tid="${t.id}">${t.title}</button>`).join("");
+  wrap.querySelectorAll("button").forEach(btn=>btn.addEventListener("click", ()=>{
+    curTrans = TRANSFORM_TOPICS.find(x=>x.id===btn.dataset.tid) || TRANSFORM_TOPICS[0];
+    buildTransTabs(); renderTransSection();
+  }));
+}
+function setTransInnerTab(which){
+  $("#transInnerTabs").querySelectorAll(".miniTab").forEach(b=>b.classList.toggle("active", b.dataset.tinner===which));
+  ["info","examples","videos","flash"].forEach(x=>$("#trans-inner-"+x).classList.toggle("show", x===which));
+}
+function getTransDeck(){
+  const rules = curTrans.flash_rules || [];
+  const exs = curTrans.flash_examples || [];
+  if(transDeckMode==="rules") return rules;
+  if(transDeckMode==="examples") return exs;
+  return rules.concat(exs);
+}
+function renderTransSection(){
+  $("#transHeader").innerHTML = `<b>${curTrans.title}</b>`;
+  $("#transInfoList").innerHTML = curTrans.info.map(line=>`<li>${line}</li>`).join("");
+  $("#transVideoList").innerHTML = (curTrans.videos||[]).map(v=>`<div class="videoItem"><b>${v.label}</b><div class="hint" style="margin-top:4px"><a href="${v.url}" target="_blank" rel="noopener">Open</a></div></div>`).join("");
+
+  const exWrap = $("#transExamples");
+  exWrap.innerHTML = "";
+  for(const ex of (curTrans.examples||[])){
+    const div = document.createElement("div");
+    div.className="exCard";
+    div.innerHTML = `
+      <div>
+        <div class="exTitle">${ex.graphTitle}</div>
+        <div class="exEq">Task: ${ex.task}\n${ex.displayEq}</div>
+      </div>
+      <div class="exImgs">
+        <div class="imgBox">
+          <img class="imgInline" src="${ex.origImg}" alt="Original graph"/>
+          <div class="imgCap">Original: ${ex.baseEq}</div>
+        </div>
+        <div class="imgBox">
+          <img class="imgInline" src="${ex.transImg}" alt="Transformed graph"/>
+          <div class="imgCap">Transformed: ${ex.displayEq}</div>
+        </div>
+      </div>
+    `;
+    exWrap.appendChild(div);
+  }
+
+  tIdx=0; tFlip=false; renderTransFlash();
+}
+function renderTransFlash(){
+  const deck=getTransDeck();
+  $("#btnTransDeckMode").textContent = `Mode: ${transDeckMode[0].toUpperCase()+transDeckMode.slice(1)}`;
+  if(!deck.length){
+    $("#tfcQ").textContent="No cards yet."; $("#tfcA").textContent=""; $("#tfcA").style.display="none";
+    setCardMedia($("#tfcImgQ"), null); setCardMedia($("#tfcImgA"), null); $("#tfcHint").textContent=""; return;
+  }
+  const card=deck[tIdx%deck.length];
+  $("#tfcQ").textContent=card.q; setCardMedia($("#tfcImgQ"), card.qImg || null);
+  $("#tfcA").textContent=card.a; $("#tfcA").style.display=tFlip?"block":"none";
+  setCardMedia($("#tfcImgA"), tFlip ? (card.aImg || null) : null);
+  $("#tfcHint").textContent=`Card ${tIdx+1} of ${deck.length}`;
+}
+
+/* =========================
+   FLASH CARDS TAB (checkboxes)
+   ========================= */
+let fcMaster=[], fcFiltered=[], fcIdx=0, fcFlip=false;
+function buildMasterDeck(){
+  fcMaster=[];
+
+  for(const g of GRAPH_TYPES){
+    fcMaster.push({source:"graphs", category:"match", graphTitle:g.title, equation:g.equation, graphImg:g.thumb});
+    fcMaster.push({source:"graphs", category:"characteristics", graphTitle:g.title, equation:g.equation, characteristic:g.characteristicsSummary, graphImg:g.thumb});
+    for(const c of (g.flash_traits||[])){
+      fcMaster.push({source:"graphs", category:"other", graphTitle:g.title, equation:g.equation, characteristic:c.q, answer:c.a, graphImg:g.thumb});
+    }
+  }
+
+  // transformation example cards into this deck (include images)
+  for(const t of TRANSFORM_TOPICS){
+    for(const card of (t.flash_examples||[])){
+      fcMaster.push({source:"transforms", category:"transExamples", characteristic:card.q, answer:card.a, qImg:card.qImg, aImg:card.aImg});
+    }
+    for(const card of (t.flash_rules||[])){
+      fcMaster.push({source:"transforms", category:"other", characteristic:card.q+"\n"+card.a, answer:card.a});
+    }
+  }
+}
+function getCheckedCategories(){
+  const inputs = Array.from(document.querySelectorAll('#fcCategoryChecks input[type="checkbox"]'));
+  return inputs.filter(i=>i.checked).map(i=>i.value);
+}
+function makeRenderedCard(card, frontChoice){
+  if(card.category==="match"){
+    if(frontChoice==="equation") return {qText:card.equation, qImg:null, aText:"(Flip for graph)", aImg:card.graphImg};
+    return {qText:"What equation is this?", qImg:card.graphImg, aText:card.equation, aImg:null};
+  }
+  if(card.category==="characteristics"){
+    if(frontChoice==="characteristic") return {qText:card.characteristic, qImg:null, aText:card.equation, aImg:null};
+    if(frontChoice==="graph") return {qText:"Use the graph to name the equation + key traits:", qImg:card.graphImg, aText:`${card.equation}\n\n${card.characteristic}`, aImg:null};
+    return {qText:card.equation, qImg:null, aText:card.characteristic, aImg:null};
+  }
+  if(card.source==="transforms"){
+    // Show images if present (example cards)
+    return {qText:card.characteristic ?? "—", qImg:card.qImg ?? null, aText:card.answer ?? "—", aImg:card.aImg ?? null};
+  }
+  if(frontChoice==="equation" && card.equation) return {qText:`Equation: ${card.equation}\n\nQuestion: ${card.characteristic}`, qImg:null, aText:card.answer ?? "—", aImg:null};
+  if(frontChoice==="graph" && card.graphImg) return {qText:`Graph: ${card.graphTitle ?? ""}\n\nQuestion: ${card.characteristic}`, qImg:card.graphImg, aText:card.answer ?? "—", aImg:null};
+  return {qText:card.characteristic ?? "—", qImg:null, aText:card.answer ?? card.equation ?? "—", aImg:null};
+}
+function renderFilteredFlash(){
+  if(!fcFiltered.length){
+    $("#fcQ").textContent="No cards match your filters.";
+    $("#fcA").textContent="Try checking more categories, or change Source.";
+    $("#fcA").style.display=fcFlip?"block":"none";
+    setCardMedia($("#fcImgQ"),null); setCardMedia($("#fcImgA"),null);
+    $("#fcHint").textContent=""; return;
+  }
+  const frontChoice=$("#fcFront").value;
+  const card=fcFiltered[fcIdx%fcFiltered.length];
+  const r=makeRenderedCard(card, frontChoice);
+
+  $("#fcQ").textContent=r.qText||""; setCardMedia($("#fcImgQ"), r.qImg||null);
+  $("#fcA").textContent=r.aText||""; $("#fcA").style.display=fcFlip?"block":"none";
+  setCardMedia($("#fcImgA"), fcFlip ? (r.aImg||null) : null);
+  $("#fcHint").textContent=`Card ${fcIdx+1} of ${fcFiltered.length}`;
+}
+function applyFlashFilters(){
+  const src=$("#fcSource").value;
+  const cats=getCheckedCategories();
+  const front=$("#fcFront").value;
+
+  let deck=fcMaster.slice();
+  if(src!=="both") deck=deck.filter(c=>c.source===src);
+  if(cats.length) deck=deck.filter(c=>cats.includes(c.category));
+
+  if(src==="transforms" && (front==="graph" || front==="equation")){
+    $("#fcFront").value="characteristic";
+  }
+
+  fcFiltered=shuffle(deck);
+  fcIdx=0; fcFlip=false;
+  renderFilteredFlash();
+}
+
+/* =========================
+   INIT
+   ========================= */
+function init(){
+  // top tabs
+  $$(".tab").forEach(b=>b.addEventListener("click", ()=>setTopTab(b.dataset.top)));
+
+  // graphs
+  buildGraphTypeTabs(); renderGraphSection(); setGraphInnerTab("info");
+  $("#graphInnerTabs").querySelectorAll(".miniTab").forEach(b=>b.addEventListener("click", ()=>setGraphInnerTab(b.dataset.inner)));
+  $("#btnRandomGraph").addEventListener("click", ()=>{ curGraph=pick(GRAPH_TYPES); buildGraphTypeTabs(); renderGraphSection(); });
+
+  $("#btnGraphDeckTraits").addEventListener("click", ()=>{ gDeck="traits"; gIdx=0; gFlip=false; renderGraphFlash(); });
+  $("#btnGraphDeckMatch").addEventListener("click", ()=>{ gDeck="match"; gIdx=0; gFlip=false; renderGraphFlash(); });
+
+  $("#gfcPrev").addEventListener("click", ()=>{ const d=getGraphDeck(); if(!d.length) return; gIdx=(gIdx-1+d.length)%d.length; gFlip=false; renderGraphFlash(); });
+  $("#gfcNext").addEventListener("click", ()=>{ const d=getGraphDeck(); if(!d.length) return; gIdx=(gIdx+1)%d.length; gFlip=false; renderGraphFlash(); });
+  $("#gfcFlip").addEventListener("click", ()=>{ gFlip=!gFlip; renderGraphFlash(); });
+
+  // transformations
+  buildTransTabs(); renderTransSection(); setTransInnerTab("info");
+  $("#transInnerTabs").querySelectorAll(".miniTab").forEach(b=>b.addEventListener("click", ()=>setTransInnerTab(b.dataset.tinner)));
+  $("#btnRandomTrans").addEventListener("click", ()=>{ curTrans=pick(TRANSFORM_TOPICS); buildTransTabs(); renderTransSection(); });
+
+  $("#btnTransDeckMode").addEventListener("click", ()=>{
+    transDeckMode=(transDeckMode==="mixed")?"rules":(transDeckMode==="rules"?"examples":"mixed");
+    tIdx=0; tFlip=false; renderTransFlash();
+  });
+  $("#tfcPrev").addEventListener("click", ()=>{ const d=getTransDeck(); if(!d.length) return; tIdx=(tIdx-1+d.length)%d.length; tFlip=false; renderTransFlash(); });
+  $("#tfcNext").addEventListener("click", ()=>{ const d=getTransDeck(); if(!d.length) return; tIdx=(tIdx+1)%d.length; tFlip=false; renderTransFlash(); });
+  $("#tfcFlip").addEventListener("click", ()=>{ tFlip=!tFlip; renderTransFlash(); });
+
+  // flashcards
+  buildMasterDeck();
+  applyFlashFilters();
+
+  $("#fcApply").addEventListener("click", applyFlashFilters);
+  $("#fcSource").addEventListener("change", applyFlashFilters);
+  $("#fcFront").addEventListener("change", ()=>{ fcFlip=false; renderFilteredFlash(); });
+  document.querySelectorAll('#fcCategoryChecks input[type="checkbox"]').forEach(cb=>cb.addEventListener("change", applyFlashFilters));
+
+  $("#fcShuffle").addEventListener("click", ()=>{ shuffle(fcFiltered); fcIdx=0; fcFlip=false; renderFilteredFlash(); });
+  $("#fcRandom").addEventListener("click", ()=>{ if(!fcFiltered.length) return; fcIdx=Math.floor(Math.random()*fcFiltered.length); fcFlip=false; renderFilteredFlash(); });
+  $("#fcPrev").addEventListener("click", ()=>{ if(!fcFiltered.length) return; fcIdx=(fcIdx-1+fcFiltered.length)%fcFiltered.length; fcFlip=false; renderFilteredFlash(); });
+  $("#fcNext").addEventListener("click", ()=>{ if(!fcFiltered.length) return; fcIdx=(fcIdx+1)%fcFiltered.length; fcFlip=false; renderFilteredFlash(); });
+  $("#fcFlip").addEventListener("click", ()=>{ fcFlip=!fcFlip; renderFilteredFlash(); });
+}
+init();
+</script>
+</body>
+</html>
