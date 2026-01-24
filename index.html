@@ -318,9 +318,29 @@
         </div>
 
         <div id="trans-inner-flash" class="panel" style="margin-top:10px">
-          <div class="row" style="justify-content:space-between">
-            <div class="pill"><b>Deck:</b> Transformation flashcards (rules + examples)</div>
-            <button class="btn" id="btnTransDeckMode">Mode: Mixed</button>
+          <div class="row" style="justify-content:space-between; align-items:flex-start">
+            <div>
+              <div class="pill"><b>Deck:</b> Transformed equation → graph</div>
+              <div class="tiny" style="margin-top:6px">Front shows a transformed <b>equation</b>. Flip to see the <b>graph</b> (with labeled key points).</div>
+            </div>
+            <div class="row">
+              <button class="btn" id="tSelectAll">Select all</button>
+              <button class="btn" id="tSelectNone">Select none</button>
+            </div>
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="pill"><b>Include graph types</b></div>
+            <div class="checks" id="tGraphChecks"></div>
+          </div>
+
+          <div style="margin-top:12px" class="row" id="tKindRow">
+            <div class="pill"><b>Cards per graph</b></div>
+            <label class="chk"><input type="checkbox" id="tCardShift" checked> Shift</label>
+            <label class="chk"><input type="checkbox" id="tCardReflect" checked> Reflection</label>
+            <label class="chk"><input type="checkbox" id="tCardStretch" checked> Stretch/Shrink</label>
+            <label class="chk"><input type="checkbox" id="tCardCombo" checked> Combo</label>
+            <button class="btn" id="tApply">Apply</button>
           </div>
 
           <div style="margin-top:10px" class="fc">
@@ -339,6 +359,7 @@
               </div>
             </div>
           </div>
+</div>
 
         </div>
 
@@ -963,7 +984,10 @@ function renderGraphFlash(){
 /* =========================
    TRANSFORMATIONS UI (examples include images)
    ========================= */
-let curTrans=TRANSFORM_TOPICS[0], tIdx=0, tFlip=false, transDeckMode="mixed";
+let curTrans=TRANSFORM_TOPICS[0]; // used for the info/examples/videos tabs
+let tIdx=0, tFlip=false;
+let tDeck=[]; // equation -> graph deck (built from selected graph types)
+
 function buildTransTabs(){
   const wrap=$("#transTypeTabs");
   wrap.innerHTML = TRANSFORM_TOPICS.map(t=>`<button class="miniTab ${t.id===curTrans.id?"active":""}" data-tid="${t.id}">${t.title}</button>`).join("");
@@ -976,13 +1000,90 @@ function setTransInnerTab(which){
   $("#transInnerTabs").querySelectorAll(".miniTab").forEach(b=>b.classList.toggle("active", b.dataset.tinner===which));
   ["info","examples","videos","flash"].forEach(x=>$("#trans-inner-"+x).classList.toggle("show", x===which));
 }
-function getTransDeck(){
-  const rules = curTrans.flash_rules || [];
-  const exs = curTrans.flash_examples || [];
-  if(transDeckMode==="rules") return rules;
-  if(transDeckMode==="examples") return exs;
-  return rules.concat(exs);
+
+function buildTransformedEquationDisplay(baseId, params){
+  // params: {a,b,h,k} in g(x)=a*f(b(x-h))+k
+  const a=params.a??1, b=params.b??1, h=params.h??0, k=params.k??0;
+
+  const inside = ()=>{
+    let inner = "x";
+    if(h!==0) inner = `x ${h>0? "-":"+"} ${Math.abs(h)}`;
+    if(b===1) return inner;
+    if(b===-1) return `-( ${inner} )`;
+    return `${b}( ${inner} )`;
+  };
+
+  const fInside = ()=>{
+    const t = inside();
+    if(baseId==="quad") return `( ${t} )^2`;
+    if(baseId==="cubic") return `( ${t} )^3`;
+    if(baseId==="recip") return `1/( ${t} )`;
+    if(baseId==="recip2") return `1/( ${t} )^2`;
+    if(baseId==="ln") return `ln( ${t} )`;
+    if(baseId==="abs") return `| ${t} |`;
+    if(baseId==="sqrt") return `sqrt( ${t} )`;
+    if(baseId==="exp") return `e^( ${t} )`;
+    if(baseId==="linear") return `( ${t} )`;
+    return `f( ${t} )`;
+  };
+
+  let expr = fInside();
+  if(a===-1) expr = `-( ${expr} )`;
+  else if(a!==1) expr = `${a}*( ${expr} )`;
+
+  if(k>0) expr = `${expr} + ${k}`;
+  else if(k<0) expr = `${expr} - ${Math.abs(k)}`;
+
+  return `y = ${expr}`;
 }
+
+function buildTGraphChecks(){
+  const wrap = $("#tGraphChecks");
+  wrap.innerHTML = GRAPH_TYPES.map(g=>`<label class="chk"><input type="checkbox" value="${g.id}" checked> ${g.title}</label>`).join("");
+}
+function getSelectedGraphIds(){
+  return Array.from(document.querySelectorAll('#tGraphChecks input[type="checkbox"]')).filter(i=>i.checked).map(i=>i.value);
+}
+function getSelectedKinds(){
+  return {
+    shift: $("#tCardShift").checked,
+    reflect: $("#tCardReflect").checked,
+    stretch: $("#tCardStretch").checked,
+    combo: $("#tCardCombo").checked
+  };
+}
+
+function buildTransformDeck(){
+  const ids = getSelectedGraphIds();
+  const kinds = getSelectedKinds();
+  const cards = [];
+
+  for(const g of GRAPH_TYPES){
+    if(!ids.includes(g.id)) continue;
+
+    const transforms=[];
+    if(kinds.shift)   transforms.push({kind:"Shift", params:{a:1,b:1,h:2,k:3}});
+    if(kinds.reflect) transforms.push({kind:"Reflection", params:{a:-1,b:1,h:0,k:0}});
+    if(kinds.stretch) transforms.push({kind:"Stretch/Shrink", params:{a:2,b:1,h:0,k:0}});
+    if(kinds.combo)   transforms.push({kind:"Combo", params:{a:-2,b:-1,h:1,k:4}});
+
+    for(const t of transforms){
+      const eq = buildTransformedEquationDisplay(g.id, t.params);
+      const transGraph = makeTransformedGraph(g, {a:t.params.a,b:t.params.b,h:t.params.h,k:t.params.k, displayEq:eq});
+      const transImg = makeThumbDataURL(transGraph);
+      cards.push({
+        q:`${eq}`,
+        a:`Graph of:\n${eq}`,
+        aImg: transImg
+      });
+    }
+  }
+
+  tDeck = shuffle(cards);
+  tIdx=0; tFlip=false;
+  renderTransFlash();
+}
+
 function renderTransSection(){
   $("#transHeader").innerHTML = `<b>${curTrans.title}</b>`;
   $("#transInfoList").innerHTML = curTrans.info.map(line=>`<li>${line}</li>`).join("");
@@ -1011,23 +1112,23 @@ function renderTransSection(){
     `;
     exWrap.appendChild(div);
   }
-
-  tIdx=0; tFlip=false; renderTransFlash();
+  renderTransFlash();
 }
+
 function renderTransFlash(){
-  const deck=getTransDeck();
-  $("#btnTransDeckMode").textContent = `Mode: ${transDeckMode[0].toUpperCase()+transDeckMode.slice(1)}`;
-  if(!deck.length){
-    $("#tfcQ").textContent="No cards yet."; $("#tfcA").textContent=""; $("#tfcA").style.display="none";
-    setCardMedia($("#tfcImgQ"), null); setCardMedia($("#tfcImgA"), null); $("#tfcHint").textContent=""; return;
+  if(!tDeck.length){
+    $("#tfcQ").textContent="No cards yet — check at least one graph type and one transform kind, then click Apply.";
+    $("#tfcA").textContent=""; $("#tfcA").style.display="none";
+    setCardMedia($("#tfcImgQ"), null); setCardMedia($("#tfcImgA"), null);
+    $("#tfcHint").textContent="";
+    return;
   }
-  const card=deck[tIdx%deck.length];
-  $("#tfcQ").textContent=card.q; setCardMedia($("#tfcImgQ"), card.qImg || null);
-  $("#tfcA").textContent=card.a; $("#tfcA").style.display=tFlip?"block":"none";
+  const card=tDeck[tIdx%tDeck.length];
+  $("#tfcQ").textContent=card.q || ""; setCardMedia($("#tfcImgQ"), card.qImg || null);
+  $("#tfcA").textContent=card.a || ""; $("#tfcA").style.display=tFlip?"block":"none";
   setCardMedia($("#tfcImgA"), tFlip ? (card.aImg || null) : null);
-  $("#tfcHint").textContent=`Card ${tIdx+1} of ${deck.length}`;
+  $("#tfcHint").textContent=`Card ${tIdx+1} of ${tDeck.length}`;
 }
-
 /* =========================
    FLASH CARDS TAB (checkboxes)
    ========================= */
@@ -1130,17 +1231,29 @@ function init(){
   $("#gfcFlip").addEventListener("click", ()=>{ gFlip=!gFlip; renderGraphFlash(); });
 
   // transformations
+  // transformations
   buildTransTabs(); renderTransSection(); setTransInnerTab("info");
   $("#transInnerTabs").querySelectorAll(".miniTab").forEach(b=>b.addEventListener("click", ()=>setTransInnerTab(b.dataset.tinner)));
   $("#btnRandomTrans").addEventListener("click", ()=>{ curTrans=pick(TRANSFORM_TOPICS); buildTransTabs(); renderTransSection(); });
 
-  $("#btnTransDeckMode").addEventListener("click", ()=>{
-    transDeckMode=(transDeckMode==="mixed")?"rules":(transDeckMode==="rules"?"examples":"mixed");
-    tIdx=0; tFlip=false; renderTransFlash();
-  });
-  $("#tfcPrev").addEventListener("click", ()=>{ const d=getTransDeck(); if(!d.length) return; tIdx=(tIdx-1+d.length)%d.length; tFlip=false; renderTransFlash(); });
-  $("#tfcNext").addEventListener("click", ()=>{ const d=getTransDeck(); if(!d.length) return; tIdx=(tIdx+1)%d.length; tFlip=false; renderTransFlash(); });
+  // Transformations → Flash Cards: equation → graph deck with checkboxes
+  buildTGraphChecks();
+  buildTransformDeck();
+
+  $("#tApply").addEventListener("click", buildTransformDeck);
+  $("#tSelectAll").addEventListener("click", ()=>{ document.querySelectorAll('#tGraphChecks input[type="checkbox"]').forEach(i=>i.checked=true); buildTransformDeck(); });
+  $("#tSelectNone").addEventListener("click", ()=>{ document.querySelectorAll('#tGraphChecks input[type="checkbox"]').forEach(i=>i.checked=false); buildTransformDeck(); });
+
+  $("#tGraphChecks").addEventListener("change", buildTransformDeck);
+  $("#tCardShift").addEventListener("change", buildTransformDeck);
+  $("#tCardReflect").addEventListener("change", buildTransformDeck);
+  $("#tCardStretch").addEventListener("change", buildTransformDeck);
+  $("#tCardCombo").addEventListener("change", buildTransformDeck);
+
+  $("#tfcPrev").addEventListener("click", ()=>{ if(!tDeck.length) return; tIdx=(tIdx-1+tDeck.length)%tDeck.length; tFlip=false; renderTransFlash(); });
+  $("#tfcNext").addEventListener("click", ()=>{ if(!tDeck.length) return; tIdx=(tIdx+1)%tDeck.length; tFlip=false; renderTransFlash(); });
   $("#tfcFlip").addEventListener("click", ()=>{ tFlip=!tFlip; renderTransFlash(); });
+
 
   // flashcards
   buildMasterDeck();
