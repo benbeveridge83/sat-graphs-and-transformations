@@ -199,6 +199,16 @@
       display:block;
     }
   </style>
+
+  <!-- MathJax for pretty equations (TeX). Works on GitHub Pages; requires internet. -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(','\\)'], ['$', '$']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
 </head>
 <body>
 <header>
@@ -947,6 +957,33 @@ for(const t of TRANSFORM_TOPICS){
    ========================= */
 const $ = (s)=>document.querySelector(s);
 const $$ = (s)=>Array.from(document.querySelectorAll(s));
+
+function escapeHTML(s){return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+function typesetMath(){
+  if(window.MathJax && MathJax.typesetPromise){
+    MathJax.typesetClear && MathJax.typesetClear();
+    MathJax.typesetPromise();
+  }
+}
+function setHTML(el, htmlStr){
+  el.innerHTML = htmlStr;
+  typesetMath();
+}
+function texInline(tex){ return `\\(${tex}\\)`; }
+function numToTex(n){
+  const pairs = [
+    [0.5, "\\frac{1}{2}"], [-0.5, "-\\frac{1}{2}"],
+    [0.25, "\\frac{1}{4}"], [-0.25, "-\\frac{1}{4}"],
+    [0.75, "\\frac{3}{4}"], [-0.75, "-\\frac{3}{4}"],
+    [1/3, "\\frac{1}{3}"], [-1/3, "-\\frac{1}{3}"],
+    [2/3, "\\frac{2}{3}"], [-2/3, "-\\frac{2}{3}"],
+  ];
+  for(const [v,t] of pairs){ if(Math.abs(n-v)<1e-6) return t; }
+  const r = Math.round(n*1000)/1000;
+  if(Math.abs(r - Math.round(r))<1e-9) return String(Math.round(r));
+  return String(r);
+}
+
 const pick = (arr)=>arr[Math.floor(Math.random()*arr.length)];
 function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
 function setTopTab(name){
@@ -1021,37 +1058,42 @@ function setTransInnerTab(which){
 }
 
 function buildTransformedEquationDisplay(baseId, params){
-  // params: {a,b,h,k} in g(x)=a*f(b(x-h))+k
+  // Returns TeX (no wrapper) like: y = 2e^{x-1}+3
   const a=params.a??1, b=params.b??1, h=params.h??0, k=params.k??0;
 
+  const innerX = ()=>{
+    if(h===0) return "x";
+    return `x ${h>0? "-" : "+"} ${numToTex(Math.abs(h))}`;
+  };
+
   const inside = ()=>{
-    let inner = "x";
-    if(h!==0) inner = `x ${h>0? "-":"+"} ${Math.abs(h)}`;
-    if(b===1) return inner;
-    if(b===-1) return `-( ${inner} )`;
-    return `${b}( ${inner} )`;
+    const xh = innerX();
+    if(b===1) return xh;
+    if(b===-1) return `-\left(${xh}\right)`;
+    return `${numToTex(b)}\left(${xh}\right)`;
   };
 
   const fInside = ()=>{
     const t = inside();
-    if(baseId==="quad") return `( ${t} )^2`;
-    if(baseId==="cubic") return `( ${t} )^3`;
-    if(baseId==="recip") return `1/( ${t} )`;
-    if(baseId==="recip2") return `1/( ${t} )^2`;
-    if(baseId==="ln") return `ln( ${t} )`;
-    if(baseId==="abs") return `| ${t} |`;
-    if(baseId==="sqrt") return `sqrt( ${t} )`;
-    if(baseId==="exp") return `e^( ${t} )`;
-    if(baseId==="linear") return `( ${t} )`;
-    return `f( ${t} )`;
+    if(baseId==="quad")   return `\left(${t}\right)^{2}`;
+    if(baseId==="cubic")  return `\left(${t}\right)^{3}`;
+    if(baseId==="recip")  return `\frac{1}{\left(${t}\right)}`;
+    if(baseId==="recip2") return `\frac{1}{\left(${t}\right)^{2}}`;
+    if(baseId==="ln")     return `\ln\left(${t}\right)`;
+    if(baseId==="abs")    return `\left|${t}\right|`;
+    if(baseId==="sqrt")   return `\sqrt{\left(${t}\right)}`;
+    if(baseId==="exp")    return `e^{\left(${t}\right)}`;
+    if(baseId==="linear") return `${t}`;
+    return `f\left(${t}\right)`;
   };
 
   let expr = fInside();
-  if(a===-1) expr = `-( ${expr} )`;
-  else if(a!==1) expr = `${a}*( ${expr} )`;
 
-  if(k>0) expr = `${expr} + ${k}`;
-  else if(k<0) expr = `${expr} - ${Math.abs(k)}`;
+  if(a===-1) expr = `-\left(${expr}\right)`;
+  else if(a!==1) expr = `${numToTex(a)}\left(${expr}\right)`;
+
+  if(k>0) expr = `${expr} + ${numToTex(k)}`;
+  else if(k<0) expr = `${expr} - ${numToTex(Math.abs(k))}`;
 
   return `y = ${expr}`;
 }
@@ -1194,7 +1236,7 @@ function buildDeck_eq2graph(){
       const eq = buildTransformedEquationDisplay(g.id, p);
       const transGraph = makeTransformedGraph(g, {a:p.a,b:p.b,h:p.h,k:p.k, displayEq:eq});
       const transImg = makeThumbDataURL(transGraph);
-      cards.push({ q:eq, a:eq, aImg: transImg });
+      cards.push({ qHtml: texInline(eq), aHtml: texInline(eq), aImg: transImg });
     }
   }
   return shuffle(cards);
@@ -1209,10 +1251,8 @@ function buildDeck_basic(){
     const eq = buildTransformedEquationDisplay(g.id, p);
     const transGraph = makeTransformedGraph(g, {a:p.a,b:p.b,h:p.h,k:p.k, displayEq:eq});
     const transImg = makeThumbDataURL(transGraph);
-    cards.push({ q:`Identify the transformation(s) applied to the graph:
-
-${eq}`, a:`Correct: ${p.desc.join(", ")}`, aImg: transImg });
-  }
+    cards.push({ qHtml: `Identify the transformation(s) applied to the graph:<br><br>${texInline(eq)}`, aHtml: `Correct: ${p.desc.join(", ")}<br>${texInline(eq)}`, aImg: transImg });
+}
   return shuffle(cards);
 }
 function buildDeck_test(){
@@ -1248,7 +1288,7 @@ Where is the horizontal asymptote?`, a:hAsyAfter(true, p.k)});
 Does the graph have a minimum or maximum?`, a:mm});
 
       for(const item of shuffle(qlist).slice(0,2)){
-        cards.push({ q:item.q, a:item.a, aImg: transImg });
+        cards.push({ qHtml: item.qHtml, aHtml: item.aHtml, aImg: transImg });
       }
     }
   }
@@ -1306,8 +1346,8 @@ function renderTransFlash(){
     return;
   }
   const card=tDeck[tIdx%tDeck.length];
-  $("#tfcQ").textContent=card.q || ""; setCardMedia($("#tfcImgQ"), card.qImg || null);
-  $("#tfcA").textContent=card.a || ""; $("#tfcA").style.display=tFlip?"block":"none";
+  setHTML($("#tfcQ"), (card.qHtml!=null)?card.qHtml:escapeHTML(card.q||"")); setCardMedia($("#tfcImgQ"), card.qImg || null);
+  setHTML($("#tfcA"), (card.aHtml!=null)?card.aHtml:escapeHTML(card.a||"")); $("#tfcA").style.display=tFlip?"block":"none";
   setCardMedia($("#tfcImgA"), tFlip ? (card.aImg || null) : null);
   $("#tfcHint").textContent=`Card ${tIdx+1} of ${tDeck.length}`;
 }
