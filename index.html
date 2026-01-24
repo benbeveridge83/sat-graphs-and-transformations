@@ -320,8 +320,8 @@
         <div id="trans-inner-flash" class="panel" style="margin-top:10px">
           <div class="row" style="justify-content:space-between; align-items:flex-start">
             <div>
-              <div class="pill"><b>Deck:</b> Transformed equation → graph</div>
-              <div class="tiny" style="margin-top:6px">Front shows a transformed <b>equation</b>. Flip to see the <b>graph</b> (with labeled key points).</div>
+              <div class="pill"><b>Transformations Flash Cards</b></div>
+              <div class="tiny" style="margin-top:6px">Choose a question type, pick which graph types to include, then study.</div>
             </div>
             <div class="row">
               <button class="btn" id="tSelectAll">Select all</button>
@@ -330,6 +330,16 @@
           </div>
 
           <div style="margin-top:10px">
+            <div class="pill"><b>Question type</b></div>
+            <div class="checks" style="margin-top:8px">
+              <label class="chk"><input type="radio" name="tMode" value="eq2graph" checked> Equation → Graph</label>
+              <label class="chk"><input type="radio" name="tMode" value="basic"> Basic understanding</label>
+              <label class="chk"><input type="radio" name="tMode" value="test"> Test questions</label>
+            </div>
+            <div class="tiny" style="margin-top:6px" id="tModeHelp">—</div>
+          </div>
+
+          <div style="margin-top:12px">
             <div class="pill"><b>Include graph types</b></div>
             <div class="checks" id="tGraphChecks"></div>
           </div>
@@ -341,6 +351,12 @@
             <label class="chk"><input type="checkbox" id="tCardStretch" checked> Stretch/Shrink</label>
             <label class="chk"><input type="checkbox" id="tCardCombo" checked> Combo</label>
             <button class="btn" id="tApply">Apply</button>
+          </div>
+
+          <div style="margin-top:10px" class="row" id="tBasicOpts">
+            <div class="pill"><b>Basic understanding options</b></div>
+            <label class="chk"><input type="radio" name="tBasicMulti" value="single" checked> One transformation</label>
+            <label class="chk"><input type="radio" name="tBasicMulti" value="multi"> Multiple transformations</label>
           </div>
 
           <div style="margin-top:10px" class="fc">
@@ -985,8 +1001,11 @@ function renderGraphFlash(){
    TRANSFORMATIONS UI (examples include images)
    ========================= */
 let curTrans=TRANSFORM_TOPICS[0]; // used for the info/examples/videos tabs
+
+// Transformations → Flash Cards
 let tIdx=0, tFlip=false;
-let tDeck=[]; // equation -> graph deck (built from selected graph types)
+let tDeck=[];                 // current deck (built from selected graph types + mode)
+let tMode="eq2graph";         // eq2graph | basic | test
 
 function buildTransTabs(){
   const wrap=$("#transTypeTabs");
@@ -1037,6 +1056,59 @@ function buildTransformedEquationDisplay(baseId, params){
   return `y = ${expr}`;
 }
 
+// ---------- Property math for "Test questions" ----------
+function parentPropsFor(id){
+  const base = {
+    quad:   {domainType:"all", rangeType:"ge0", vAsy:false, hAsy:false, minmax:"min"},
+    abs:    {domainType:"all", rangeType:"ge0", vAsy:false, hAsy:false, minmax:"min"},
+    cubic:  {domainType:"all", rangeType:"all", vAsy:false, hAsy:false, minmax:"none"},
+    linear: {domainType:"all", rangeType:"all", vAsy:false, hAsy:false, minmax:"none"},
+    sqrt:   {domainType:"ge0", rangeType:"ge0", vAsy:false, hAsy:false, minmax:"none"},
+    ln:     {domainType:"gt0", rangeType:"all", vAsy:true,  hAsy:false, minmax:"none"},
+    exp:    {domainType:"all", rangeType:"gt0", vAsy:false, hAsy:true,  minmax:"none"},
+    recip:  {domainType:"neq0",rangeType:"neq0",vAsy:true,  hAsy:true,  minmax:"none"},
+    recip2: {domainType:"neq0",rangeType:"gt0", vAsy:true,  hAsy:true,  minmax:"none"},
+  };
+  return base[id] || {domainType:"all", rangeType:"all", vAsy:false, hAsy:false, minmax:"none"};
+}
+function fmtNum(n){
+  const r = Math.round(n*1000)/1000;
+  if(Math.abs(r - Math.round(r)) < 1e-9) return String(Math.round(r));
+  return String(r);
+}
+function domainAfter(baseDomainType, b, h){
+  if(baseDomainType==="all") return "all real x";
+  if(baseDomainType==="neq0") return `x ≠ ${fmtNum(h)}`;
+  const sign = b>=0 ? 1 : -1;
+  if(baseDomainType==="ge0") return sign>0 ? `x ≥ ${fmtNum(h)}` : `x ≤ ${fmtNum(h)}`;
+  if(baseDomainType==="gt0") return sign>0 ? `x > ${fmtNum(h)}` : `x < ${fmtNum(h)}`;
+  return "all real x";
+}
+function rangeAfter(baseRangeType, a, k){
+  if(baseRangeType==="all") return "all real y";
+  if(baseRangeType==="neq0") return `y ≠ ${fmtNum(k)}`;
+  if(baseRangeType==="ge0"){
+    if(a>0) return `y ≥ ${fmtNum(k)}`;
+    if(a<0) return `y ≤ ${fmtNum(k)}`;
+    return "y = " + fmtNum(k);
+  }
+  if(baseRangeType==="gt0"){
+    if(a>0) return `y > ${fmtNum(k)}`;
+    if(a<0) return `y < ${fmtNum(k)}`;
+    return "y = " + fmtNum(k);
+  }
+  return "all real y";
+}
+function vAsyAfter(has, h){ return has ? `x = ${fmtNum(h)}` : "none"; }
+function hAsyAfter(has, k){ return has ? `y = ${fmtNum(k)}` : "none"; }
+function minmaxAfter(minmax, a, h, k){
+  if(minmax!=="min") return null;
+  if(a>0) return `minimum at (${fmtNum(h)}, ${fmtNum(k)}) (value ${fmtNum(k)})`;
+  if(a<0) return `maximum at (${fmtNum(h)}, ${fmtNum(k)}) (value ${fmtNum(k)})`;
+  return null;
+}
+
+// ---------- UI helpers ----------
 function buildTGraphChecks(){
   const wrap = $("#tGraphChecks");
   wrap.innerHTML = GRAPH_TYPES.map(g=>`<label class="chk"><input type="checkbox" value="${g.id}" checked> ${g.title}</label>`).join("");
@@ -1052,34 +1124,143 @@ function getSelectedKinds(){
     combo: $("#tCardCombo").checked
   };
 }
+function getBasicMultiMode(){
+  return document.querySelector('input[name="tBasicMulti"]:checked')?.value || "single";
+}
+function setModeHelp(){
+  if(!$("#tModeHelp")) return;
+  if(tMode==="eq2graph") $("#tModeHelp").textContent = "Front: equation. Back: graph image.";
+  else if(tMode==="basic") $("#tModeHelp").textContent = "Front: equation. Question: What transformations were applied? Back: correct transformations + graph.";
+  else $("#tModeHelp").textContent = "Front: equation + a question about the transformed graph. Back: correct answer + graph.";
+  $("#tBasicOpts").style.display = (tMode==="basic") ? "flex" : "none";
+}
 
-function buildTransformDeck(){
-  const ids = getSelectedGraphIds();
+// ---------- Transform definitions ----------
+function kindTransformsSelected(){
   const kinds = getSelectedKinds();
-  const cards = [];
+  const list=[];
+  if(kinds.shift) list.push("shift");
+  if(kinds.reflect) list.push("reflect");
+  if(kinds.stretch) list.push("stretch");
+  if(kinds.combo) list.push("combo");
+  return list;
+}
+function paramsForKind(kind){
+  if(kind==="shift")   return {a:1,b:1,h:2,k:3, desc:["shift right 2","shift up 3"]};
+  if(kind==="reflect") return {a:-1,b:1,h:0,k:0, desc:["reflect across x-axis"]};
+  if(kind==="stretch") return {a:2,b:1,h:0,k:0, desc:["vertical stretch ×2"]};
+  if(kind==="combo")   return {a:-2,b:-1,h:1,k:4, desc:["reflect across y-axis","reflect across x-axis","vertical stretch ×2","shift right 1","shift up 4"]};
+  return {a:1,b:1,h:0,k:0, desc:[]};
+}
+function randomSingleTransformParams(){
+  const choices = [
+    {a:1,b:1,h:0,k:2, desc:["shift up 2"]},
+    {a:1,b:1,h:0,k:-2, desc:["shift down 2"]},
+    {a:1,b:1,h:1,k:0, desc:["shift right 1"]},
+    {a:1,b:1,h:-1,k:0, desc:["shift left 1"]},
+    {a:-1,b:1,h:0,k:0, desc:["reflect across x-axis"]},
+    {a:1,b:-1,h:0,k:0, desc:["reflect across y-axis"]},
+    {a:2,b:1,h:0,k:0, desc:["vertical stretch ×2"]},
+    {a:0.5,b:1,h:0,k:0, desc:["vertical shrink ×0.5"]},
+  ];
+  return pick(choices);
+}
+function randomMultiTransformParams(){
+  let a=1,b=1,h=0,k=0;
+  const desc=[];
+  const ops = shuffle(["up","down","right","left","refx","refy","stretch","shrink"]).slice(0,3);
+  for(const op of ops){
+    if(op==="up"){ k+=2; desc.push("shift up 2"); }
+    if(op==="down"){ k-=2; desc.push("shift down 2"); }
+    if(op==="right"){ h+=1; desc.push("shift right 1"); }
+    if(op==="left"){ h-=1; desc.push("shift left 1"); }
+    if(op==="refx"){ a*=-1; desc.push("reflect across x-axis"); }
+    if(op==="refy"){ b*=-1; desc.push("reflect across y-axis"); }
+    if(op==="stretch"){ a*=2; desc.push("vertical stretch ×2"); }
+    if(op==="shrink"){ a*=0.5; desc.push("vertical shrink ×0.5"); }
+  }
+  return {a,b,h,k, desc};
+}
 
+// ---------- Deck builders ----------
+function buildDeck_eq2graph(){
+  const ids = getSelectedGraphIds();
+  const kindKeys = kindTransformsSelected();
+  const cards=[];
   for(const g of GRAPH_TYPES){
     if(!ids.includes(g.id)) continue;
-
-    const transforms=[];
-    if(kinds.shift)   transforms.push({kind:"Shift", params:{a:1,b:1,h:2,k:3}});
-    if(kinds.reflect) transforms.push({kind:"Reflection", params:{a:-1,b:1,h:0,k:0}});
-    if(kinds.stretch) transforms.push({kind:"Stretch/Shrink", params:{a:2,b:1,h:0,k:0}});
-    if(kinds.combo)   transforms.push({kind:"Combo", params:{a:-2,b:-1,h:1,k:4}});
-
-    for(const t of transforms){
-      const eq = buildTransformedEquationDisplay(g.id, t.params);
-      const transGraph = makeTransformedGraph(g, {a:t.params.a,b:t.params.b,h:t.params.h,k:t.params.k, displayEq:eq});
+    for(const k of kindKeys){
+      const p = paramsForKind(k);
+      const eq = buildTransformedEquationDisplay(g.id, p);
+      const transGraph = makeTransformedGraph(g, {a:p.a,b:p.b,h:p.h,k:p.k, displayEq:eq});
       const transImg = makeThumbDataURL(transGraph);
-      cards.push({
-        q:`${eq}`,
-        a:`Graph of:\n${eq}`,
-        aImg: transImg
-      });
+      cards.push({ q:eq, a:eq, aImg: transImg });
     }
   }
+  return shuffle(cards);
+}
+function buildDeck_basic(){
+  const ids = getSelectedGraphIds();
+  const multi = getBasicMultiMode();
+  const cards=[];
+  for(const g of GRAPH_TYPES){
+    if(!ids.includes(g.id)) continue;
+    const p = (multi==="single") ? randomSingleTransformParams() : randomMultiTransformParams();
+    const eq = buildTransformedEquationDisplay(g.id, p);
+    const transGraph = makeTransformedGraph(g, {a:p.a,b:p.b,h:p.h,k:p.k, displayEq:eq});
+    const transImg = makeThumbDataURL(transGraph);
+    cards.push({ q:`Identify the transformation(s) applied to the graph:
 
-  tDeck = shuffle(cards);
+${eq}`, a:`Correct: ${p.desc.join(", ")}`, aImg: transImg });
+  }
+  return shuffle(cards);
+}
+function buildDeck_test(){
+  const ids = getSelectedGraphIds();
+  const kindKeys = kindTransformsSelected();
+  const cards=[];
+  for(const g of GRAPH_TYPES){
+    if(!ids.includes(g.id)) continue;
+    const props = parentPropsFor(g.id);
+    for(const k of kindKeys){
+      const p = paramsForKind(k);
+      const eq = buildTransformedEquationDisplay(g.id, p);
+      const transGraph = makeTransformedGraph(g, {a:p.a,b:p.b,h:p.h,k:p.k, displayEq:eq});
+      const transImg = makeThumbDataURL(transGraph);
+
+      const qlist=[];
+      qlist.push({q:`${eq}
+
+What is the domain?`, a:domainAfter(props.domainType, p.b, p.h)});
+      qlist.push({q:`${eq}
+
+What is the range?`, a:rangeAfter(props.rangeType, p.a, p.k)});
+
+      if(props.vAsy) qlist.push({q:`${eq}
+
+Where is the vertical asymptote?`, a:vAsyAfter(true, p.h)});
+      if(props.hAsy) qlist.push({q:`${eq}
+
+Where is the horizontal asymptote?`, a:hAsyAfter(true, p.k)});
+      const mm = minmaxAfter(props.minmax, p.a, p.h, p.k);
+      if(mm) qlist.push({q:`${eq}
+
+Does the graph have a minimum or maximum?`, a:mm});
+
+      for(const item of shuffle(qlist).slice(0,2)){
+        cards.push({ q:item.q, a:item.a, aImg: transImg });
+      }
+    }
+  }
+  return shuffle(cards);
+}
+
+function buildTransformDeck(){
+  tMode = document.querySelector('input[name="tMode"]:checked')?.value || "eq2graph";
+  setModeHelp();
+  if(tMode==="eq2graph") tDeck = buildDeck_eq2graph();
+  else if(tMode==="basic") tDeck = buildDeck_basic();
+  else tDeck = buildDeck_test();
   tIdx=0; tFlip=false;
   renderTransFlash();
 }
@@ -1097,7 +1278,8 @@ function renderTransSection(){
     div.innerHTML = `
       <div>
         <div class="exTitle">${ex.graphTitle}</div>
-        <div class="exEq">Task: ${ex.task}\n${ex.displayEq}</div>
+        <div class="exEq">Task: ${ex.task}
+${ex.displayEq}</div>
       </div>
       <div class="exImgs">
         <div class="imgBox">
@@ -1117,7 +1299,7 @@ function renderTransSection(){
 
 function renderTransFlash(){
   if(!tDeck.length){
-    $("#tfcQ").textContent="No cards yet — check at least one graph type and one transform kind, then click Apply.";
+    $("#tfcQ").textContent="No cards yet — pick at least one graph type, then click Apply.";
     $("#tfcA").textContent=""; $("#tfcA").style.display="none";
     setCardMedia($("#tfcImgQ"), null); setCardMedia($("#tfcImgA"), null);
     $("#tfcHint").textContent="";
@@ -1236,7 +1418,7 @@ function init(){
   $("#transInnerTabs").querySelectorAll(".miniTab").forEach(b=>b.addEventListener("click", ()=>setTransInnerTab(b.dataset.tinner)));
   $("#btnRandomTrans").addEventListener("click", ()=>{ curTrans=pick(TRANSFORM_TOPICS); buildTransTabs(); renderTransSection(); });
 
-  // Transformations → Flash Cards: equation → graph deck with checkboxes
+  // Transformations → Flash Cards
   buildTGraphChecks();
   buildTransformDeck();
 
@@ -1249,6 +1431,9 @@ function init(){
   $("#tCardReflect").addEventListener("change", buildTransformDeck);
   $("#tCardStretch").addEventListener("change", buildTransformDeck);
   $("#tCardCombo").addEventListener("change", buildTransformDeck);
+
+  document.querySelectorAll('input[name="tMode"]').forEach(r=>r.addEventListener("change", buildTransformDeck));
+  document.querySelectorAll('input[name="tBasicMulti"]').forEach(r=>r.addEventListener("change", buildTransformDeck));
 
   $("#tfcPrev").addEventListener("click", ()=>{ if(!tDeck.length) return; tIdx=(tIdx-1+tDeck.length)%tDeck.length; tFlip=false; renderTransFlash(); });
   $("#tfcNext").addEventListener("click", ()=>{ if(!tDeck.length) return; tIdx=(tIdx+1)%tDeck.length; tFlip=false; renderTransFlash(); });
