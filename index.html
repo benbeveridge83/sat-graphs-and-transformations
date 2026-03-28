@@ -126,10 +126,7 @@
     .tasks{margin-top:10px; display:grid; gap:8px}
 
     .task{
-      display:grid;
-      grid-template-columns:minmax(0,1fr) auto;
-      align-items:start;
-      gap:10px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
       padding:8px 10px; border:1px solid var(--line); border-radius:12px;
       background:#fff;
       transition: border-color .15s ease, box-shadow .15s ease;
@@ -141,7 +138,7 @@
     }
 
     .taskLeft{display:flex; gap:10px; align-items:center; min-width:0}
-    .taskLeft label{display:flex; gap:8px; align-items:flex-start; cursor:pointer; min-width:0; flex:1}
+    .taskLeft label{display:flex; gap:8px; align-items:center; cursor:pointer; min-width:0}
     .taskLeft .name{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
     .tag{font-size:11px; color:var(--muted); border:1px solid var(--line); padding:2px 8px; border-radius:999px; background:#fff}
@@ -150,7 +147,7 @@
     .tag.week{border-color:rgba(37,99,235,.25); color:#1e3a8a}
     .tag.weekDone{border-color:rgba(22,163,74,.35); color:#0f5132}
     .mono{font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
-    .taskActions{display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; max-width:100%}
+    .taskActions{display:flex; gap:6px; align-items:center}
     .iconBtn{padding:6px 8px; border-radius:10px; font-size:12px}
 
     .ringWrap{display:flex; gap:14px; align-items:center}
@@ -288,8 +285,8 @@
       line-height:1.2;
     }
     .taskLeft{min-width:0; flex:1}
-    .task{align-items:start}
-    .taskActions{align-self:start}
+    .task{align-items:flex-start}
+    .taskActions{flex-wrap:wrap; justify-content:flex-end}
 
 
     /* Category tags with color */
@@ -315,19 +312,17 @@
       border:1px solid rgba(37,99,235,.25);
       border-radius:999px;
       overflow:hidden;
-      display:inline-block;
+      display:inline-flex;
+      align-items:center;
       height:22px;
       background:#fff;
       position:relative;
       min-width:130px;
-      isolation:isolate;
     }
     .weekFill{
-      position:absolute;
-      left:0; top:0; bottom:0;
+      height:100%;
       background:linear-gradient(90deg,#22c55e,#16a34a);
       width:0%;
-      z-index:0;
     }
     .weekText{
       padding:0 10px;
@@ -343,11 +338,6 @@
       white-space:nowrap;
     }
     .weekPill.done{ border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.05); }
-
-    @media (max-width: 980px){
-      .task{grid-template-columns:1fr;}
-      .taskActions{justify-content:flex-start;}
-    }
 
     /* Grid group header rows */
     .groupRow td{
@@ -471,21 +461,6 @@
 
     .habitsHome{ margin-top:0 !important; }
     .habitsSidebar{ align-self:start; position:sticky; top:90px; } /* keeps sidebar visible; adjust with header */
-
-
-    .treeToolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:end; margin-top:10px}
-    .todoTreeNode{margin:6px 0}
-    .todoTreeRow{display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:12px; background:#fff; padding:8px 10px}
-    .todoTreeRow.selected{border-color:rgba(37,99,235,.35); background:rgba(37,99,235,.06)}
-    .todoTreeRow .toggle{width:28px; min-width:28px; padding:4px 0; border-radius:10px; text-align:center}
-    .todoTreeRow .grow{flex:1; min-width:0; display:flex; align-items:center; gap:8px}
-    .todoTreeChildren{margin-left:18px; padding-left:10px; border-left:1px dashed #cbd5e1}
-    .todoSummaryRow td{background:rgba(22,163,74,.06) !important; font-weight:700}
-    .todoSummaryRow td:first-child{position:sticky; left:0; z-index:4; background:rgba(22,163,74,.1) !important}
-    .daysPicker{display:grid; gap:8px}
-    .daysRow{display:flex; gap:8px; flex-wrap:wrap}
-    .dayChip{display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border:1px solid var(--line); border-radius:999px; background:#fff; cursor:pointer; user-select:none}
-    .dayChip input{width:auto; margin:0}
 
   </style>
 </head>
@@ -642,14 +617,6 @@
           <div class="card" style="flex:1; min-width:280px">
             <h2>Life Tree (with counts)</h2>
             <div class="small">Badge shows pending / total (including all descendants).</div>
-            <div class="treeToolbar">
-              <div class="field" style="min-width:220px; flex:1">
-                <div class="lbl">Filter tree by category</div>
-                <select id="todoTreeCategoryFilter"></select>
-              </div>
-              <button id="expandTodoTreeBtn">Expand All</button>
-              <button id="collapseTodoTreeBtn">Collapse All</button>
-            </div>
             <div id="todoLifeTree" style="margin-top:8px"></div>
           </div>
 
@@ -959,18 +926,6 @@
           <input id="taskWeeklyInput" type="number" min="1" max="7" value="7" />
         </div>
 
-        <div class="field full">
-          <div class="lbl">Show on these days</div>
-          <div class="daysPicker">
-            <div class="daysRow">
-              <button type="button" id="taskDaysWeekdaysBtn">Weekdays</button>
-              <button type="button" id="taskDaysAllBtn">All days</button>
-              <button type="button" id="taskDaysNoneBtn">Unselect all days</button>
-            </div>
-            <div class="daysRow" id="taskDaysWrap"></div>
-          </div>
-        </div>
-
         <div class="field">
           <div class="lbl">Tracking type</div>
           <select id="taskTypeSelect">
@@ -1016,56 +971,10 @@
   </div>
 </div>
 
-<div class="modalBackdrop" id="todoModalBackdrop">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="todoModalTitle">
-    <div class="modalHeader">
-      <strong id="todoModalTitle">Edit To-Do</strong>
-      <div class="row" style="justify-content:flex-end">
-        <button id="todoModalCloseBtn">Close</button>
-      </div>
-    </div>
-    <div class="modalBody">
-      <div class="formGrid">
-        <div class="field full">
-          <div class="lbl">Title</div>
-          <input id="todoModalTitleInput" placeholder="To-do title" />
-        </div>
-        <div class="field">
-          <div class="lbl">Life branch</div>
-          <select id="todoModalLifeSelect"></select>
-        </div>
-        <div class="field">
-          <div class="lbl">Category</div>
-          <select id="todoModalCategorySelect"></select>
-        </div>
-        <div class="field full">
-          <div class="lbl">Status</div>
-          <div class="row" style="gap:8px; flex-wrap:wrap">
-            <span class="tag mono" id="todoModalStatusTag">Pending</span>
-            <span class="catTag" id="todoModalCategoryTag"><span class="catDot"></span><span>No category</span></span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modalFooter">
-      <div class="small" id="todoModalMeta"></div>
-      <div class="row" style="gap:8px; justify-content:flex-end">
-        <button id="todoToggleCompleteBtn" class="good">Mark Complete</button>
-        <button id="todoDeleteBtn" class="danger">Delete</button>
-        <button id="todoSaveBtn" class="primary">Save</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div id="toastWrap"></div>
 
 <script>
 const STORAGE_KEY = "my_habit_app_v2";
-const STORAGE_BACKEND_KEY = STORAGE_KEY + "__backend";
-const STORAGE_DB_NAME = "my_habit_app_db";
-const STORAGE_DB_STORE = "app_state";
-let suppressPersist = false;
 const todayISO = () => new Date().toISOString().slice(0,10);
 const nowISO = () => new Date().toISOString();
 const toLocalDateInput = (d=new Date()) => {
@@ -1076,14 +985,7 @@ const toLocalDateInput = (d=new Date()) => {
 };
 function cryptoId(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
 function clampInt(v,min,max){ v = Number(v); if(!Number.isFinite(v)) v = min; v = Math.round(v); return Math.max(min, Math.min(max, v)); }
-const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const ALL_DAYS = [0,1,2,3,4,5,6];
-const WEEKDAY_DAYS = [1,2,3,4,5];
-function normalizeDaysOfWeek(days, fallback='all'){
-  const source = Array.isArray(days) ? days : (fallback === 'weekdays' ? WEEKDAY_DAYS : ALL_DAYS);
-  return [...new Set(source.map(x=>Number(x)).filter(x=>Number.isInteger(x) && x>=0 && x<=6))].sort((a,b)=>a-b);
-}
-function task(name, xp, weeklyTarget=7, groupId="none", categoryId="none", type="checkbox", targetValue=1, allowPartial=true, daysOfWeek=null){ return { id: cryptoId(), name, xp: Number(xp)||10, weeklyTarget: clampInt(weeklyTarget,1,7), active: true, goalId: null, groupId, categoryId, type, targetValue: Number(targetValue)||1, allowPartial: allowPartial !== false, daysOfWeek: normalizeDaysOfWeek(daysOfWeek, 'weekdays') }; }
+function task(name, xp, weeklyTarget=7, groupId="none", categoryId="none", type="checkbox", targetValue=1, allowPartial=true){ return { id: cryptoId(), name, xp: Number(xp)||10, weeklyTarget: clampInt(weeklyTarget,1,7), active: true, goalId: null, groupId, categoryId, type, targetValue: Number(targetValue)||1, allowPartial: allowPartial !== false }; }
 
 function defaultLifeTree(){
   return { id:"root", title:"Life", children:[
@@ -1112,7 +1014,7 @@ function defaultState(){
       priorityOrder: [],
       voidDays: {}
     },
-    todo: { categories: [{id: cryptoId(), name:"Errands", color:"#7c3aed"}, {id: cryptoId(), name:"Calls", color:"#2563eb"}, {id: cryptoId(), name:"Admin", color:"#f59e0b"}], items: [], selectedLifeId: "root", showCompleted: false, selectedCategoryId: "all", treeCollapsed: {} },
+    todo: { categories: [{id: cryptoId(), name:"Errands", color:"#7c3aed"}, {id: cryptoId(), name:"Calls", color:"#2563eb"}, {id: cryptoId(), name:"Admin", color:"#f59e0b"}], items: [], selectedLifeId: "root", showCompleted: false },
     bad: { relapsePenalty: 50, clean: { current: 0, longest: 0, lastCleanDate: "" }, urges: [], targets: [] },
     journal: { entries: [], loadedId: null },
     life: { tree: defaultLifeTree() }
@@ -1150,13 +1052,11 @@ function migrateState(s){
   if(!Array.isArray(s.habits.priorityOrder)) s.habits.priorityOrder = [];
   if(!Array.isArray(s.habits.categories)) s.habits.categories = [];
   s.habits.categories.forEach(c=>{ if(!("color" in c)) c.color = "#2563eb"; });
-  if(!s.todo) s.todo = {categories:[], items:[], selectedLifeId:"root", showCompleted:false, selectedCategoryId:"all", treeCollapsed:{}};
+  if(!s.todo) s.todo = {categories:[], items:[], selectedLifeId:"root", showCompleted:false};
   if(!Array.isArray(s.todo.categories)) s.todo.categories = [];
   s.todo.categories.forEach(c=>{ if(!("color" in c)) c.color = "#7c3aed"; });
   if(!Array.isArray(s.todo.items)) s.todo.items = [];
   s.todo.items.forEach(it=>{ if(!("categoryId" in it)) it.categoryId = "none"; });
-  if(!("selectedCategoryId" in s.todo)) s.todo.selectedCategoryId = "all";
-  if(!s.todo.treeCollapsed || typeof s.todo.treeCollapsed !== "object") s.todo.treeCollapsed = {};
   s.habits.tasks.forEach(t=>{
     if(!("groupId" in t)) t.groupId = "none";
     if(!("categoryId" in t)) t.categoryId = "none";
@@ -1170,7 +1070,7 @@ function migrateState(s){
   if(!s.habits.voidDays || typeof s.habits.voidDays !== "object") s.habits.voidDays = {};
   if(!s.ui) s.ui = {habitView:"day", viewDate: toLocalDateInput(new Date()), rowPctWindow:"month"};
   if(!("rowPctWindow" in s.ui)) s.ui.rowPctWindow = "month";
-  if(!s.todo) s.todo = {items:[], selectedLifeId:"root", showCompleted:false, selectedCategoryId:"all", treeCollapsed:{}};
+  if(!s.todo) s.todo = {items:[], selectedLifeId:"root", showCompleted:false};
 }
 function load(){
   try{
@@ -1185,72 +1085,7 @@ function load(){
     return defaultState();
   }
 }
-function openStateDb(){
-  return new Promise((resolve, reject)=>{
-    if(!window.indexedDB) return reject(new Error("IndexedDB is not available in this browser context."));
-    const req = indexedDB.open(STORAGE_DB_NAME, 1);
-    req.onupgradeneeded = ()=>{
-      const db = req.result;
-      if(!db.objectStoreNames.contains(STORAGE_DB_STORE)) db.createObjectStore(STORAGE_DB_STORE);
-    };
-    req.onsuccess = ()=> resolve(req.result);
-    req.onerror = ()=> reject(req.error || new Error("Unable to open IndexedDB."));
-  });
-}
-function writeStateToIndexedDb(raw){
-  return openStateDb().then(db => new Promise((resolve, reject)=>{
-    const tx = db.transaction(STORAGE_DB_STORE, "readwrite");
-    tx.objectStore(STORAGE_DB_STORE).put(raw, STORAGE_KEY);
-    tx.oncomplete = ()=>{ db.close(); resolve(); };
-    tx.onerror = ()=>{ db.close(); reject(tx.error || new Error("Unable to save app state.")); };
-    tx.onabort = ()=>{ db.close(); reject(tx.error || new Error("App state save was aborted.")); };
-  }));
-}
-function readStateFromIndexedDb(){
-  return openStateDb().then(db => new Promise((resolve, reject)=>{
-    const tx = db.transaction(STORAGE_DB_STORE, "readonly");
-    const req = tx.objectStore(STORAGE_DB_STORE).get(STORAGE_KEY);
-    req.onsuccess = ()=>{ db.close(); resolve(req.result || null); };
-    req.onerror = ()=>{ db.close(); reject(req.error || new Error("Unable to read app state.")); };
-  }));
-}
-function save(){
-  if(suppressPersist) return;
-  const raw = JSON.stringify(state);
-  try{
-    localStorage.setItem(STORAGE_KEY, raw);
-    localStorage.setItem(STORAGE_BACKEND_KEY, "localStorage");
-  }catch(e){
-    if(e && (e.name === "QuotaExceededError" || e.code === 22 || e.code === 1014)){
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.setItem(STORAGE_BACKEND_KEY, "indexedDB");
-      writeStateToIndexedDb(raw)
-        .then(()=>{ if(typeof toast === "function") toast("Saved", "Local storage was full, so your data was saved in the browser database."); })
-        .catch(err=>{
-          console.error("IndexedDB save failed", err);
-          alert("Save failed because browser storage is full. Export your data soon to avoid losing changes.");
-        });
-      return;
-    }
-    throw e;
-  }
-}
-function hydrateStateFromIndexedDb(){
-  if(localStorage.getItem(STORAGE_BACKEND_KEY) !== "indexedDB") return Promise.resolve(false);
-  return readStateFromIndexedDb()
-    .then(raw => {
-      if(!raw) return false;
-      const parsed = JSON.parse(raw);
-      const merged = deepMerge(defaultState(), parsed);
-      migrateState(merged);
-      state = merged;
-      return true;
-    })
-    .catch(err => {
-      console.warn("IndexedDB hydrate failed", err);
-      return false;
-    });
-}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
 const toastWrap = document.getElementById("toastWrap");
 const catModalBackdrop = document.getElementById("catModalBackdrop");
@@ -1270,10 +1105,6 @@ const taskGroupSelect = document.getElementById("taskGroupSelect");
 const taskCategorySelect = document.getElementById("taskCategorySelect");
 const taskXPInput = document.getElementById("taskXPInput");
 const taskWeeklyInput = document.getElementById("taskWeeklyInput");
-const taskDaysWrap = document.getElementById("taskDaysWrap");
-const taskDaysWeekdaysBtn = document.getElementById("taskDaysWeekdaysBtn");
-const taskDaysAllBtn = document.getElementById("taskDaysAllBtn");
-const taskDaysNoneBtn = document.getElementById("taskDaysNoneBtn");
 const taskTypeSelect = document.getElementById("taskTypeSelect");
 const taskTargetInput = document.getElementById("taskTargetInput");
 const taskPartialToggle = document.getElementById("taskPartialToggle");
@@ -1503,21 +1334,6 @@ const todoLifeTree = document.getElementById("todoLifeTree");
 const todoList = document.getElementById("todoList");
 const todoFilterLabel = document.getElementById("todoFilterLabel");
 const showCompletedTodos = document.getElementById("showCompletedTodos");
-const todoTreeCategoryFilter = document.getElementById("todoTreeCategoryFilter");
-const expandTodoTreeBtn = document.getElementById("expandTodoTreeBtn");
-const collapseTodoTreeBtn = document.getElementById("collapseTodoTreeBtn");
-const todoModalBackdrop = document.getElementById("todoModalBackdrop");
-const todoModalCloseBtn = document.getElementById("todoModalCloseBtn");
-const todoModalTitleInput = document.getElementById("todoModalTitleInput");
-const todoModalLifeSelect = document.getElementById("todoModalLifeSelect");
-const todoModalCategorySelect = document.getElementById("todoModalCategorySelect");
-const todoModalStatusTag = document.getElementById("todoModalStatusTag");
-const todoModalCategoryTag = document.getElementById("todoModalCategoryTag");
-const todoModalMeta = document.getElementById("todoModalMeta");
-const todoToggleCompleteBtn = document.getElementById("todoToggleCompleteBtn");
-const todoDeleteBtn = document.getElementById("todoDeleteBtn");
-const todoSaveBtn = document.getElementById("todoSaveBtn");
-let editingTodoId = null;
 
 const levelCurve = document.getElementById("levelCurve");
 const perfectBonus = document.getElementById("perfectBonus");
@@ -1648,18 +1464,6 @@ function setDoneOn(taskId, iso, val){
 function setNumberOn(taskId, iso, val){
   ensureDateMap(iso)[taskId] = { type:"number", value: Math.max(0, Number(val)||0) };
 }
-function taskScheduledOn(task, iso){
-  const days = normalizeDaysOfWeek(task && task.daysOfWeek, 'all');
-  const dow = new Date(iso+'T00:00:00').getDay();
-  return days.includes(dow);
-}
-function taskDaysLabel(task){
-  const days = normalizeDaysOfWeek(task && task.daysOfWeek, 'all');
-  if(days.length === 7) return 'Every day';
-  if(days.length === 5 && WEEKDAY_DAYS.every(d=>days.includes(d))) return 'Weekdays';
-  if(days.length === 0) return 'No days';
-  return days.map(d=>DAY_NAMES[d]).join(', ');
-}
 function activeTasks(){ return state.habits.tasks.filter(t=>t.active); }
 function groupListWithNone(){ return [{id:"none", name:"No group"}, ...state.habits.groups]; }
 function groupName(id){ if(id==="none") return "No group"; return (state.habits.groups.find(g=>g.id===id)?.name) || "Unknown group"; }
@@ -1734,7 +1538,7 @@ function priorityBonusFor(taskId){
 }
 function totalTaskXP(task){ return (Number(task.xp)||0) + priorityBonusFor(task.id); }
 function dailyCounts(iso){
-  const tasks = activeTasks().filter(t=>taskScheduledOn(t, iso));
+  const tasks = activeTasks();
   const total = tasks.length;
   let done = 0;
   tasks.forEach(t => { if(isDoneOn(t.id, iso)) done++; });
@@ -1743,7 +1547,7 @@ function dailyCounts(iso){
 function dayXP(iso){
   const mult = momentumMultiplier();
   let xp = 0;
-  activeTasks().filter(t=>taskScheduledOn(t, iso)).forEach(t => { if(isDoneOn(t.id, iso)) xp += totalTaskXP(t); });
+  activeTasks().forEach(t => { if(isDoneOn(t.id, iso)) xp += totalTaskXP(t); });
   const totals = dailyCounts(iso);
   if(totals.total > 0 && totals.done === totals.total) xp += Number(state.settings.perfectBonus)||0;
   return Math.round(xp * mult);
@@ -1757,9 +1561,7 @@ function updateStreakIfNeeded(){
   const activeTaskIds = activeTasks().map(t=>t.id);
   if(activeTaskIds.length === 0){ state.habits.streak.current = 0; return; }
   function isPerfect(date){
-    const todaysTaskIds = activeTasks().filter(t=>taskScheduledOn(t, date)).map(t=>t.id);
-    if(!todaysTaskIds.length) return false;
-    for(const id of todaysTaskIds) if(!isDoneOn(id, date)) return false;
+    for(const id of activeTaskIds) if(!isDoneOn(id, date)) return false;
     return true;
   }
   const today = todayISO();
@@ -1913,8 +1715,6 @@ function renderHabitsDay(){
   const grouped = tasksByGroup();
 
   grouped.forEach(({group, tasks}) => {
-    tasks = tasks.filter(t => taskScheduledOn(t, iso));
-    if(!tasks.length) return;
     const wrap = document.createElement("div");
     wrap.className = "group";
     const total = tasks.length;
@@ -1997,6 +1797,7 @@ function renderHabitsDay(){
         qty.style.width = "84px";
         qty.value = String(Number(getTaskValueOn(t.id, iso))||0);
         qty.disabled = isVoidedDay(iso);
+        qty.addEventListener("click", (ev)=>ev.stopPropagation());
         qty.onchange = () => {
           setNumberOn(t.id, iso, qty.value);
           commitDayXP(iso); save(); renderAll(true);
@@ -2007,6 +1808,7 @@ function renderHabitsDay(){
         cb.type = "checkbox";
         cb.checked = isDoneOn(t.id, iso);
         cb.disabled = isVoidedDay(iso);
+        cb.addEventListener("click", (ev)=>ev.stopPropagation());
         cb.onchange = () => {
           setDoneOn(t.id, iso, cb.checked);
           commitDayXP(iso);
@@ -2021,6 +1823,7 @@ function renderHabitsDay(){
         lab.append(cb, name);
       }
       left.appendChild(lab);
+      wireHabitEditorClick(row, t.id);
 
       const right = document.createElement("div");
       right.className = "taskActions";
@@ -2065,10 +1868,6 @@ function renderHabitsDay(){
         ctag.textContent = `Cat: ${taskCategoryName(t.categoryId)}`;
         right.appendChild(ctag);
       }
-      const daysTag = document.createElement("span");
-      daysTag.className = "tag";
-      daysTag.textContent = taskDaysLabel(t);
-      right.appendChild(daysTag);
 
       const base = Number(t.xp)||0;
       const bonus = priorityBonusFor(t.id);
@@ -2151,18 +1950,6 @@ function renderHabitsGrid(){
     hr.appendChild(th);
   });
   thead.appendChild(hr);
-  const sr = document.createElement("tr");
-  sr.className = "todoSummaryRow";
-  const s0 = document.createElement("td");
-  s0.textContent = "Completed";
-  sr.appendChild(s0);
-  days.forEach(d=>{
-    const td = document.createElement("td");
-    const counts = dailyCounts(d);
-    td.textContent = `${counts.done}/${counts.total}`;
-    sr.appendChild(td);
-  });
-  thead.appendChild(sr);
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
@@ -2193,23 +1980,19 @@ function renderHabitsGrid(){
 const rowPct = taskWindowPercent(t, iso, state.ui.rowPctWindow || "month");
 td0.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px">
         <div style="font-weight:700">${escapeHtml(t.name)}</div>
-        <div class="small">${escapeHtml(groupName(t.groupId||"none"))}${(t.categoryId&&t.categoryId!=="none")?(" • "+escapeHtml(taskCategoryName(t.categoryId))):""} • ${escapeHtml(taskDaysLabel(t))} • <span class="mono">${t.weeklyTarget}x/wk</span> • <span class="mono">${(state.ui.rowPctWindow||"month")} ${rowPct}%</span>${t.type==="number" ? ` • Target ${Number(t.targetValue||0)}` : ""}</div>
+        <div class="small">${escapeHtml(groupName(t.groupId||"none"))}${(t.categoryId&&t.categoryId!=="none")?(" • "+escapeHtml(taskCategoryName(t.categoryId))):""} • <span class="mono">${t.weeklyTarget}x/wk</span> • <span class="mono">${(state.ui.rowPctWindow||"month")} ${rowPct}%</span>${t.type==="number" ? ` • Target ${Number(t.targetValue||0)}` : ""}</div>
         ${view==="week" ? `<div class="weekPill ${countTaskThisWeek(t.id, days[0])>=t.weeklyTarget ? "done":""}">
             <span class="weekFill" style="width:${Math.max(0,Math.min(100,Math.round((countTaskThisWeek(t.id, days[0])/t.weeklyTarget)*100)))}%"></span>
             <span class="weekText mono">Week ${countTaskThisWeek(t.id, days[0])}/${t.weeklyTarget}</span>
           </div>` : ""}
       </div>`;
+    wireHabitEditorClick(td0, t.id);
     tr.appendChild(td0);
 
     days.forEach(d=>{
       const td = document.createElement("td");
       if(isVoidedDay(d)){
         td.innerHTML = '<span class="small mono">VOID</span>';
-        tr.appendChild(td);
-        return;
-      }
-      if(!taskScheduledOn(t, d)){
-        td.innerHTML = '<span class="small mono">—</span>';
         tr.appendChild(td);
         return;
       }
@@ -2247,6 +2030,16 @@ td0.innerHTML = `<div style="display:flex; flex-direction:column; gap:4px">
   table.appendChild(tbody);
   wrap.appendChild(table);
   habitsGridWrap.appendChild(wrap);
+}
+
+function wireHabitEditorClick(el, taskId){
+  if(!el || !taskId) return;
+  el.style.cursor = "pointer";
+  el.title = "Click to edit this habit";
+  el.addEventListener("click", (ev) => {
+    if(ev.target.closest("button, input, select, textarea, label, a")) return;
+    openTaskModal(taskId);
+  });
 }
 
 function editTaskModal(t){
@@ -2637,164 +2430,6 @@ function exportOutline(){
   toast("Exported", "Outline text updated below.");
 }
 
-function todoItemMatchesCategory(item, categoryId){
-  return categoryId === "all" ? true : (item.categoryId || "none") === categoryId;
-}
-function todoNodeVisibleForFilter(node, categoryId){
-  if(categoryId === "all") return true;
-  const ids = new Set(collectDescendantIds(node));
-  return state.todo.items.some(it => ids.has(it.lifeNodeId) && todoItemMatchesCategory(it, categoryId));
-}
-function setTodoTreeCollapsedRecursive(node, collapsed){
-  if(node.id !== "root") state.todo.treeCollapsed[node.id] = collapsed;
-  (node.children||[]).forEach(ch => setTodoTreeCollapsedRecursive(ch, collapsed));
-}
-function renderTodoTreeCategoryFilter(){
-  if(!todoTreeCategoryFilter) return;
-  todoTreeCategoryFilter.innerHTML = "";
-  const opts = [{id:"all", name:"All categories"}, ...todoCategoryListWithNone()];
-  opts.forEach(c=>{
-    const opt = document.createElement("option");
-    opt.value = c.id;
-    opt.textContent = c.name;
-    todoTreeCategoryFilter.appendChild(opt);
-  });
-  todoTreeCategoryFilter.value = state.todo.selectedCategoryId || "all";
-}
-function renderTodoLifeTree(){
-  ensureLifeTree();
-  renderTodoTreeCategoryFilter();
-  const selectedId = state.todo.selectedLifeId || "root";
-  const categoryId = state.todo.selectedCategoryId || "all";
-  todoLifeTree.innerHTML = "";
-  function renderNode(node){
-    if(!todoNodeVisibleForFilter(node, categoryId)) return null;
-    const wrap = document.createElement("div");
-    wrap.className = "todoTreeNode";
-    const row = document.createElement("div");
-    row.className = "todoTreeRow" + (node.id === selectedId ? " selected" : "");
-    const hasChildren = !!((node.children||[]).length);
-    const collapsed = !!state.todo.treeCollapsed[node.id];
-    const toggle = document.createElement("button");
-    toggle.className = "toggle";
-    toggle.textContent = hasChildren ? (collapsed ? "+" : "−") : "•";
-    toggle.disabled = !hasChildren;
-    toggle.onclick = (e)=>{
-      e.stopPropagation();
-      if(!hasChildren) return;
-      state.todo.treeCollapsed[node.id] = !collapsed;
-      save();
-      renderTodo();
-    };
-    const grow = document.createElement("div");
-    grow.className = "grow";
-    const title = document.createElement("div");
-    title.className = "lifeNodeTitle";
-    title.textContent = node.title;
-    const counts = todoCountsForNode(node, categoryId);
-    const badge = document.createElement("span");
-    badge.className = "lifeBadge mono";
-    badge.textContent = `${counts.pending}/${counts.total} pending`;
-    grow.append(title, badge);
-    row.append(toggle, grow);
-    row.onclick = ()=>{
-      state.todo.selectedLifeId = node.id;
-      save();
-      renderTodo();
-    };
-    wrap.appendChild(row);
-    if(hasChildren && !collapsed){
-      const kids = document.createElement("div");
-      kids.className = "todoTreeChildren";
-      (node.children||[]).forEach(ch=>{
-        const childEl = renderNode(ch);
-        if(childEl) kids.appendChild(childEl);
-      });
-      if(kids.childElementCount) wrap.appendChild(kids);
-    }
-    return wrap;
-  }
-  const rootEl = renderNode(state.life.tree);
-  if(rootEl) todoLifeTree.appendChild(rootEl);
-}
-function fillTodoModalOptions(item){
-  todoModalLifeSelect.innerHTML = "";
-  lifeFlattenOptions().forEach(o=>{
-    const opt = document.createElement("option");
-    opt.value = o.id;
-    opt.textContent = o.label;
-    todoModalLifeSelect.appendChild(opt);
-  });
-  todoModalCategorySelect.innerHTML = "";
-  todoCategoryListWithNone().forEach(c=>{
-    const opt = document.createElement("option");
-    opt.value = c.id;
-    opt.textContent = c.name;
-    todoModalCategorySelect.appendChild(opt);
-  });
-  todoModalLifeSelect.value = item.lifeNodeId || "root";
-  todoModalCategorySelect.value = item.categoryId || "none";
-}
-function refreshTodoModalVisuals(){
-  const item = state.todo.items.find(x=>x.id===editingTodoId);
-  if(!item) return;
-  const isDone = !!item.completedAt;
-  todoModalStatusTag.textContent = isDone ? "Completed" : "Pending";
-  todoModalStatusTag.className = "tag mono" + (isDone ? " good" : "");
-  todoToggleCompleteBtn.textContent = isDone ? "Mark Pending" : "Mark Complete";
-  const catId = todoModalCategorySelect.value || item.categoryId || "none";
-  const dot = todoModalCategoryTag.querySelector('.catDot');
-  const label = todoModalCategoryTag.querySelector('span:last-child');
-  if(dot) dot.style.background = todoCategoryColor(catId);
-  if(label) label.textContent = todoCategoryName(catId);
-  todoModalMeta.textContent = `Life: ${lifeNodeTitle(todoModalLifeSelect.value || item.lifeNodeId)} • Created ${new Date(item.createdAt).toLocaleDateString()}`;
-}
-function openTodoModal(id){
-  const item = state.todo.items.find(x=>x.id===id);
-  if(!item) return;
-  editingTodoId = id;
-  todoModalTitleInput.value = item.title || "";
-  fillTodoModalOptions(item);
-  refreshTodoModalVisuals();
-  todoModalBackdrop.style.display = "flex";
-  setTimeout(()=>todoModalTitleInput.focus(),0);
-}
-function closeTodoModal(){
-  todoModalBackdrop.style.display = "none";
-  editingTodoId = null;
-}
-function saveTodoFromModal(){
-  const item = state.todo.items.find(x=>x.id===editingTodoId);
-  if(!item) return closeTodoModal();
-  const title = (todoModalTitleInput.value||"").trim();
-  if(!title) return alert("Please enter a to-do title.");
-  item.title = title;
-  item.lifeNodeId = todoModalLifeSelect.value || "root";
-  item.categoryId = todoModalCategorySelect.value || "none";
-  item.updatedAt = nowISO();
-  save();
-  renderTodo();
-  closeTodoModal();
-}
-function toggleTodoCompleteFromModal(){
-  const item = state.todo.items.find(x=>x.id===editingTodoId);
-  if(!item) return closeTodoModal();
-  item.completedAt = item.completedAt ? null : nowISO();
-  item.updatedAt = nowISO();
-  save();
-  renderTodo();
-  openTodoModal(item.id);
-}
-function deleteTodoFromModal(){
-  const item = state.todo.items.find(x=>x.id===editingTodoId);
-  if(!item) return closeTodoModal();
-  if(!confirm(`Delete "${item.title}"?`)) return;
-  state.todo.items = state.todo.items.filter(x=>x.id!==editingTodoId);
-  save();
-  renderTodo();
-  closeTodoModal();
-}
-
 function renderLifeOptionsDropdown(){
   const opts = lifeFlattenOptions();
   todoLifeSelect.innerHTML = "";
@@ -2819,9 +2454,9 @@ function renderLifeOptionsDropdown(){
     if(todoCategoryListWithNone().some(c=>c.id===dc)) todoCategorySelect.value = dc;
   }
 }
-function todoCountsForNode(node, categoryId = state.todo.selectedCategoryId || "all"){
+function todoCountsForNode(node){
   const ids = new Set(collectDescendantIds(node));
-  const items = state.todo.items.filter(x=>ids.has(x.lifeNodeId)).filter(x=>todoItemMatchesCategory(x, categoryId));
+  const items = state.todo.items.filter(x=>ids.has(x.lifeNodeId));
   const pending = items.filter(x=>!x.completedAt).length;
   return {pending, total: items.length};
 }
@@ -2834,44 +2469,61 @@ function renderTodo(){
   ensureLifeTree();
   renderLifeOptionsDropdown();
   showCompletedTodos.checked = !!state.todo.showCompleted;
-  renderTodoLifeTree();
+  renderLifeTree(todoLifeTree, state.todo.selectedLifeId || "root", selectTodoLifeNode, (node)=>{
+    const {pending,total} = todoCountsForNode(node);
+    return `${pending}/${total} pending`;
+  });
   const selectedId = state.todo.selectedLifeId || "root";
   const selectedNode = findNodeAndParent(state.life.tree, selectedId)?.node || state.life.tree;
   const subtreeIds = new Set(collectDescendantIds(selectedNode));
-  const selectedCategoryId = state.todo.selectedCategoryId || "all";
-  const categoryLabel = selectedCategoryId === "all" ? "All categories" : todoCategoryName(selectedCategoryId);
-  todoFilterLabel.textContent = `Showing: ${lifeNodeTitle(selectedId)} (includes descendants) • Category: ${categoryLabel}`;
+  todoFilterLabel.textContent = `Showing: ${lifeNodeTitle(selectedId)} (includes descendants)`;
   todoList.innerHTML = "";
   const showCompleted = !!state.todo.showCompleted;
   const list = state.todo.items
     .filter(x=>subtreeIds.has(x.lifeNodeId))
-    .filter(x=>todoItemMatchesCategory(x, selectedCategoryId))
     .filter(x=> showCompleted ? true : !x.completedAt)
     .sort((a,b)=> (a.completedAt?1:0) - (b.completedAt?1:0) || (b.updatedAt||b.createdAt).localeCompare(a.updatedAt||a.createdAt));
   if(list.length === 0){
-    todoList.innerHTML = `<div class="small">No to‑dos in this branch for the selected category filter.</div>`;
+    todoList.innerHTML = `<div class="small">No to‑dos in this branch.</div>`;
     return;
   }
   list.forEach(item=>{
     const div = document.createElement("div");
     div.className = "entry";
     const created = new Date(item.createdAt);
-    const catId = item.categoryId || "none";
     div.innerHTML = `
       <div class="t">
         <strong>${escapeHtml(item.title)}${item.completedAt ? " ✅" : ""}</strong>
         <span class="mono">${created.toLocaleDateString()}</span>
       </div>
-      <p>Life: ${escapeHtml(lifeNodeTitle(item.lifeNodeId))}</p>
-      <p><span class="catTag"><span class="catDot" style="background:${escapeHtml(todoCategoryColor(catId))}"></span><span>${escapeHtml(todoCategoryName(catId))}</span></span></p>
+      <p>Life: ${escapeHtml(lifeNodeTitle(item.lifeNodeId))}${(item.categoryId&&item.categoryId!=="none")?(" • Cat: "+escapeHtml(todoCategoryName(item.categoryId))):""}</p>
       <p class="small">${item.completedAt ? "Completed" : "Pending"} • click to manage</p>
     `;
-    div.onclick = () => openTodoModal(item.id);
+    div.onclick = () => manageTodo(item.id);
     todoList.appendChild(div);
   });
 }
 function manageTodo(id){
-  openTodoModal(id);
+  const item = state.todo.items.find(x=>x.id===id);
+  if(!item) return;
+  const action = prompt(`Manage To‑Do: "${item.title}"
+1 = Toggle complete
+2 = Rename
+3 = Move to Life branch
+4 = Change category
+5 = Delete
+Enter 1-5:`);
+  if(!action) return;
+  if(action === "1"){ item.completedAt = item.completedAt ? null : nowISO(); item.updatedAt = nowISO(); }
+  else if(action === "2"){ const n = prompt("Rename:", item.title); if(n && n.trim()){ item.title = n.trim(); item.updatedAt = nowISO(); } }
+  else if(action === "3"){
+    const opts = lifeFlattenOptions().map(o=>`${o.id} :: ${o.label}`).join("\n");
+    const pick = prompt(`Move to which Life branch?\n\n${opts}`, `${item.lifeNodeId} :: ${lifeNodeTitle(item.lifeNodeId)}`);
+    if(pick){ const nid = pick.split("::")[0].trim(); if(findNodeAndParent(state.life.tree, nid)) item.lifeNodeId = nid; item.updatedAt = nowISO(); }
+  } else if(action === "4"){
+    if(confirm("Delete this to‑do?")) state.todo.items = state.todo.items.filter(x=>x.id!==id);
+  }
+  save(); renderTodo();
 }
 
 function renderSettings(){
@@ -2973,9 +2625,6 @@ if(openQuickAddBtn){
 }
 if(taskModalCloseBtn) taskModalCloseBtn.addEventListener("click", closeTaskModal);
 if(taskCancelBtn) taskCancelBtn.addEventListener("click", closeTaskModal);
-if(taskDaysWeekdaysBtn) taskDaysWeekdaysBtn.addEventListener("click", ()=>{ editingTaskDays = WEEKDAY_DAYS.slice(); renderTaskDaysPicker(); });
-if(taskDaysAllBtn) taskDaysAllBtn.addEventListener("click", ()=>{ editingTaskDays = ALL_DAYS.slice(); renderTaskDaysPicker(); });
-if(taskDaysNoneBtn) taskDaysNoneBtn.addEventListener("click", ()=>{ editingTaskDays = []; renderTaskDaysPicker(); });
 if(taskSaveBtn) taskSaveBtn.addEventListener("click", saveTaskFromModal);
 if(taskDeleteBtn) taskDeleteBtn.addEventListener("click", deleteTaskFromModal);
 if(taskModalBackdrop){
@@ -3095,16 +2744,6 @@ addTodoBtn.addEventListener("click", ()=>{
   toast("To‑Do added", `Linked to: ${lifeNodeTitle(nid)}`);
 });
 showCompletedTodos.addEventListener("change", ()=>{ state.todo.showCompleted = !!showCompletedTodos.checked; save(); renderTodo(); });
-if(todoTreeCategoryFilter) todoTreeCategoryFilter.addEventListener("change", ()=>{ state.todo.selectedCategoryId = todoTreeCategoryFilter.value || "all"; save(); renderTodo(); });
-if(expandTodoTreeBtn) expandTodoTreeBtn.addEventListener("click", ()=>{ setTodoTreeCollapsedRecursive(state.life.tree, false); save(); renderTodo(); });
-if(collapseTodoTreeBtn) collapseTodoTreeBtn.addEventListener("click", ()=>{ setTodoTreeCollapsedRecursive(state.life.tree, true); if(state.life.tree.id) state.todo.treeCollapsed[state.life.tree.id] = false; save(); renderTodo(); });
-if(todoModalCloseBtn) todoModalCloseBtn.addEventListener("click", closeTodoModal);
-if(todoModalBackdrop) todoModalBackdrop.addEventListener("click", (e)=>{ if(e.target === todoModalBackdrop) closeTodoModal(); });
-if(todoSaveBtn) todoSaveBtn.addEventListener("click", saveTodoFromModal);
-if(todoToggleCompleteBtn) todoToggleCompleteBtn.addEventListener("click", toggleTodoCompleteFromModal);
-if(todoDeleteBtn) todoDeleteBtn.addEventListener("click", deleteTodoFromModal);
-if(todoModalCategorySelect) todoModalCategorySelect.addEventListener("change", refreshTodoModalVisuals);
-if(todoModalLifeSelect) todoModalLifeSelect.addEventListener("change", refreshTodoModalVisuals);
 
 saveSettingsBtn.addEventListener("click", () => {
   state.settings.levelCurve = Number(levelCurve.value) || 1.35;
@@ -3151,31 +2790,6 @@ importFile.addEventListener("change", async (ev) => {
   }
 });
 
-function renderTaskDaysPicker(){
-  if(!taskDaysWrap) return;
-  taskDaysWrap.innerHTML = "";
-  DAY_NAMES.forEach((label, dayIndex)=>{
-    const chip = document.createElement('label');
-    chip.className = 'dayChip';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = editingTaskDays.includes(dayIndex);
-    cb.onchange = ()=>{
-      if(cb.checked){
-        if(!editingTaskDays.includes(dayIndex)) editingTaskDays.push(dayIndex);
-      } else {
-        editingTaskDays = editingTaskDays.filter(d=>d!==dayIndex);
-      }
-      editingTaskDays = normalizeDaysOfWeek(editingTaskDays, 'weekdays');
-      renderTaskDaysPicker();
-    };
-    const span = document.createElement('span');
-    span.textContent = label;
-    chip.append(cb, span);
-    taskDaysWrap.appendChild(chip);
-  });
-}
-
 function openTaskModal(taskId=null){
   editingTaskId = taskId;
   const isNew = !taskId;
@@ -3218,8 +2832,6 @@ function openTaskModal(taskId=null){
     taskCategorySelect.value = state.ui.lastQuickCategory || "none";
     taskXPInput.value = 10;
     taskWeeklyInput.value = 7;
-    editingTaskDays = WEEKDAY_DAYS.slice();
-    renderTaskDaysPicker();
     taskTypeSelect.value = "checkbox";
     taskTargetInput.value = 1;
     taskPartialToggle.checked = true;
@@ -3234,8 +2846,6 @@ function openTaskModal(taskId=null){
     taskCategorySelect.value = t.categoryId || "none";
     taskXPInput.value = Number(t.xp)||10;
     taskWeeklyInput.value = clampInt(t.weeklyTarget||7,1,7);
-    editingTaskDays = normalizeDaysOfWeek(t.daysOfWeek, 'all');
-    renderTaskDaysPicker();
     taskTypeSelect.value = t.type || "checkbox";
     taskTargetInput.value = Number(t.targetValue||1);
     taskPartialToggle.checked = t.allowPartial !== false;
@@ -3250,7 +2860,6 @@ function openTaskModal(taskId=null){
 function closeTaskModal(){
   taskModalBackdrop.style.display = "none";
   editingTaskId = null;
-  editingTaskDays = WEEKDAY_DAYS.slice();
 }
 function saveTaskFromModal(){
   const name = (taskNameInput.value||"").trim();
@@ -3264,13 +2873,11 @@ function saveTaskFromModal(){
   const allowPartial = !!taskPartialToggle.checked;
   const goalId = (taskGoalSelect.value && taskGoalSelect.value !== "none") ? taskGoalSelect.value : null;
   const active = !!taskActiveToggle.checked;
-  const daysOfWeek = normalizeDaysOfWeek(editingTaskDays, 'weekdays');
 
   if(!editingTaskId){
-    const t = task(name, xp, weekly, gid, cid, type, targetValue, allowPartial, daysOfWeek);
+    const t = task(name, xp, weekly, gid, cid, type, targetValue, allowPartial);
     t.goalId = goalId;
     t.active = active;
-    t.daysOfWeek = daysOfWeek;
     state.habits.tasks.push(t);
     state.ui.lastQuickGroup = gid;
     state.ui.lastQuickCategory = cid;
@@ -3288,7 +2895,6 @@ function saveTaskFromModal(){
     t.allowPartial = allowPartial;
     t.goalId = goalId;
     t.active = active;
-    t.daysOfWeek = daysOfWeek;
     toast("Saved", name);
   }
 
@@ -3398,26 +3004,10 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[s]));
 }
 
-function startApp(){
-  state.ui.viewDate = todayISO();
-  const shouldHydrateFromDb = localStorage.getItem(STORAGE_BACKEND_KEY) === "indexedDB";
-  if(shouldHydrateFromDb) suppressPersist = true;
-  renderAll(true);
-  setActiveSeg(habitViewSel.value||'day');
-  updateViewDateLabel();
-  if(shouldHydrateFromDb){
-    hydrateStateFromIndexedDb().then(hydrated => {
-      suppressPersist = false;
-      if(hydrated){
-        renderAll(true);
-        setActiveSeg(habitViewSel.value||'day');
-        updateViewDateLabel();
-        if(typeof toast === "function") toast("Loaded", "Your app data was loaded from the browser database.");
-      }
-    });
-  }
-}
-startApp();
+state.ui.viewDate = todayISO();
+renderAll(true);
+setActiveSeg(habitViewSel.value||'day');
+updateViewDateLabel();
 
 // Safety: force any legacy editTask calls to use the modal
 window.editTask = (id)=>{ try{ return openTaskModal(id); }catch(e){ console.error(e); } };
