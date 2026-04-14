@@ -5665,7 +5665,6 @@ function openStructuredDocEditor(docId){
     syncTagAssignmentsFromSupabase();
     renderTags();
     setDraftDocumentTagLinks(ui.newDocumentTagLinks || []);
-    if(CASE_ID){ renderDocuments(); renderPeople(); renderOutline(); renderExhibits(); setTab(getInitialViewFromUrl(), { pushState:false }); }
     $('dashboardBtn')?.addEventListener('click', ()=> showDashboardOnly());
     $('signOutBtn')?.addEventListener('click', async ()=>{ await window.supabase.auth.signOut(); localStorage.removeItem('murski_selected_case_id'); const url = new URL(window.location.href); url.searchParams.delete('case'); window.location.href = url.pathname; });
     $('dashboardRefreshBtn')?.addEventListener('click', ()=> loadDashboardData());
