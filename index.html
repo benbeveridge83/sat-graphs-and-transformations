@@ -9,7 +9,7 @@
     const SUPABASE_KEY = "sb_publishable_0ddiJfYLmhk9maLNcYJakg_aUMkvWRO"
 
     const urlParams = new URLSearchParams(window.location.search)
-    const CASE_ID = urlParams.get("case") || localStorage.getItem("murski_selected_case_id") || ""
+    const CASE_ID = urlParams.get("case") || ""
     const INITIAL_VIEW = (urlParams.get("view") || "outline").toLowerCase()
     window.INITIAL_VIEW = INITIAL_VIEW
 
@@ -1145,8 +1145,8 @@
       </div>
     </div>
   </div>
-  <div class="tabs"><a id="tabOutline" class="tab active" data-view-link="outline" href="?view=outline">Case Outline</a><a id="tabDocuments" class="tab" data-view-link="documents" href="?view=documents">Documents</a><a id="tabTagIndex" class="tab" data-view-link="tagindex" href="?view=tagindex">Tag Index</a><a id="tabOutlineIndex" class="tab" data-view-link="outlineindex" href="?view=outlineindex">Outline Index</a><a id="tabStructuredOutline" class="tab" data-view-link="structuredoutline" href="?view=structuredoutline">Structured Outline</a><a id="tabExhibits" class="tab" data-view-link="exhibits" href="?view=exhibits">Exhibits</a><a id="tabPeople" class="tab" data-view-link="people" href="?view=people">People</a><a id="tabElements" class="tab" data-view-link="elements" href="?view=elements">Elements</a><a id="tabTimeline" class="tab" data-view-link="timeline" href="?view=timeline">Timeline</a><a id="tabSettings" class="tab" data-view-link="settings" href="?view=settings">Add Tag</a></div>
-  <div class="container" id="appContainer">
+  <div class="tabs" id="mainTabs" style="display:none"><a id="tabOutline" class="tab active" data-view-link="outline" href="?view=outline">Case Outline</a><a id="tabDocuments" class="tab" data-view-link="documents" href="?view=documents">Documents</a><a id="tabTagIndex" class="tab" data-view-link="tagindex" href="?view=tagindex">Tag Index</a><a id="tabOutlineIndex" class="tab" data-view-link="outlineindex" href="?view=outlineindex">Outline Index</a><a id="tabStructuredOutline" class="tab" data-view-link="structuredoutline" href="?view=structuredoutline">Structured Outline</a><a id="tabExhibits" class="tab" data-view-link="exhibits" href="?view=exhibits">Exhibits</a><a id="tabPeople" class="tab" data-view-link="people" href="?view=people">People</a><a id="tabElements" class="tab" data-view-link="elements" href="?view=elements">Elements</a><a id="tabTimeline" class="tab" data-view-link="timeline" href="?view=timeline">Timeline</a><a id="tabSettings" class="tab" data-view-link="settings" href="?view=settings">Add Tag</a></div>
+  <div class="container" id="appContainer" style="display:none">
     <div id="viewOutline" class="card"><h2>Case Outline</h2><div class="hint">Build a structured outline and then tie it to witnesses, exhibits, and testimony. Add witnesses to a row to create witness columns. In each witness column cell, select exhibits (from Documents) and add testimony.</div>
       <div class="toolbar" style="align-items:flex-start"><div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center"><button id="addTop" class="btnPrimary">+ Add top-level heading</button><button id="collapseAll" class="btnGhost">Collapse all</button><button id="expandAll" class="btnGhost">Expand all</button><button id="structureViewToggle" class="btnGhost">Structure view</button><button id="outlineCompactToggle" class="btnGhost">Name-only view</button><div id="outlineTagFilterHost"></div><div id="outlineWitnessFilterHost"></div></div><div style="height:1px; flex-basis:100%"></div><div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center"><span class="pill" id="selHint">Select a row, then use these controls</span><button id="actSibling" class="btnGhost">+ Sibling</button><button id="actChild" class="btnGhost">+ Child</button><button id="actIndent" class="btnGhost">↳ Indent</button><button id="actOutdent" class="btnGhost">↰ Outdent</button><button id="actUp" class="btnGhost">↑</button><button id="actDown" class="btnGhost">↓</button><button id="actDelete" class="btnDanger">Delete</button><span style="width:12px"></span><button id="actAddExhibit" class="btnPrimary">+ Add exhibit</button><span class="pill" id="exHint">Click a witness cell, select a document, then Add exhibit</span></div></div>
       <div id="outlineEmpty" class="empty" style="display:none; margin-top:12px">No outline items yet. Click “Add top-level heading”.</div>
@@ -5577,9 +5577,97 @@ function openStructuredDocEditor(docId){
     $('structuredDocDownload')?.addEventListener('click', downloadStructuredDocEditorFile);
     $('structuredDocModal')?.addEventListener('click', (ev)=>{ if(ev.target && ev.target.id === 'structuredDocModal') closeStructuredDocEditor(); });
 
-    load(); syncOutlineFromSupabase(); syncDocumentsFromSupabase(); syncPeopleFromSupabase(); syncWitnessCellsFromSupabase(); syncTagsFromSupabase(); syncTagAssignmentsFromSupabase(); renderTags(); setDraftDocumentTagLinks(ui.newDocumentTagLinks || []); renderDocuments(); renderPeople(); renderOutline(); renderExhibits(); setTab(getInitialViewFromUrl(), { pushState:false });
+    const authUi = { session:null, cases:[], selectedCase:'', members:[] };
+    function getActiveSessionUser(){ return authUi.session && authUi.session.user ? authUi.session.user : null; }
+    function hideAppChrome(){ if($('mainTabs')) $('mainTabs').style.display = 'none'; if($('appContainer')) $('appContainer').style.display = 'none'; }
+    function showAppChrome(){ if($('mainTabs')) $('mainTabs').style.display = ''; if($('appContainer')) $('appContainer').style.display = ''; if($('authShell')) $('authShell').style.display = 'none'; if($('authGate')) $('authGate').style.display = 'none'; if($('dashboardView')) $('dashboardView').style.display = 'none'; if($('authTopbar')) $('authTopbar').classList.remove('hidden'); const user=getActiveSessionUser(); if($('authUserBadge')) $('authUserBadge').textContent = user?.email || 'Signed in'; }
+    function showLoginOnly(message=''){ hideAppChrome(); if($('authShell')) $('authShell').style.display = ''; if($('authGate')) $('authGate').style.display = ''; if($('dashboardView')) $('dashboardView').style.display = 'none'; if($('authTopbar')) $('authTopbar').classList.add('hidden'); if($('dashboardSetupNotice')){ $('dashboardSetupNotice').classList.toggle('hidden', !message); $('dashboardSetupNotice').textContent = message || ''; } }
+    async function loadCaseMembers(caseId){
+      authUi.members = [];
+      if(!caseId) return [];
+      const { data: memberRows, error } = await window.supabase.from('case_members').select('user_id, role').eq('case_id', caseId);
+      if(error) throw error;
+      const userIds = Array.from(new Set((memberRows || []).map(row => row.user_id).filter(Boolean)));
+      let profiles = [];
+      if(userIds.length){
+        const profileRes = await window.supabase.from('profiles').select('id, email, display_name').in('id', userIds);
+        if(profileRes.error) throw profileRes.error;
+        profiles = profileRes.data || [];
+      }
+      const profileById = new Map(profiles.map(profile => [profile.id, profile]));
+      authUi.members = (memberRows || []).map(row => ({ ...row, profile: profileById.get(row.user_id) || null }));
+      const list = $('caseMembersList');
+      if(list){
+        list.innerHTML = authUi.members.length ? authUi.members.map(row => {
+          const profile = row.profile || {};
+          const label = profile.display_name || profile.email || row.user_id;
+          const canRemove = authUi.selectedCase && getActiveSessionUser() && row.user_id !== getActiveSessionUser().id;
+          return `<div class="memberRow"><div><b>${escapeHtml(label || 'User')}</b><div class="authMuted">${escapeHtml(profile.email || row.user_id || '')}</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="pill">${escapeHtml(row.role || 'user')}</span>${canRemove ? `<button type="button" class="btnGhost" data-remove-member="${row.user_id}">Remove</button>` : ''}</div></div>`;
+        }).join('') : '<div class="empty">No users on this case yet.</div>';
+        list.querySelectorAll('[data-remove-member]').forEach(btn => btn.addEventListener('click', async ()=>{ try{ const userId = btn.getAttribute('data-remove-member'); if(!userId || !authUi.selectedCase) return; const { error: delError } = await window.supabase.from('case_members').delete().eq('case_id', authUi.selectedCase).eq('user_id', userId); if(delError) throw delError; await loadCaseMembers(authUi.selectedCase); toast('User removed from case'); }catch(e){ alert(e.message || e); } }));
+      }
+      return authUi.members;
+    }
+    function renderDashboardCases(){
+      const list = $('dashboardCasesList');
+      const empty = $('dashboardCasesEmpty');
+      if(!list || !empty) return;
+      list.innerHTML = '';
+      const rows = authUi.cases || [];
+      empty.style.display = rows.length ? 'none' : '';
+      rows.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'caseCard' + (authUi.selectedCase === item.case_id ? ' active' : '');
+        card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><b>${escapeHtml(item.case_name || 'Untitled case')}</b><div class="authMuted">Role: ${escapeHtml(item.role || 'user')}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btnPrimary" data-open-case="${item.case_id}">Open case</button>${item.role === 'admin' ? `<button type="button" class="btnGhost" data-manage-case="${item.case_id}">Manage access</button>` : ''}</div></div>`;
+        list.appendChild(card);
+      });
+      list.querySelectorAll('[data-open-case]').forEach(btn => btn.addEventListener('click', ()=> openCaseFromDashboard(btn.getAttribute('data-open-case'))));
+      list.querySelectorAll('[data-manage-case]').forEach(btn => btn.addEventListener('click', async ()=>{ authUi.selectedCase = btn.getAttribute('data-manage-case') || ''; const row = (authUi.cases || []).find(item => item.case_id === authUi.selectedCase); if($('caseAdminPanel')) $('caseAdminPanel').classList.remove('hidden'); if($('caseAdminTitle')) $('caseAdminTitle').textContent = row ? `${row.case_name} • admin` : 'Case access'; await loadCaseMembers(authUi.selectedCase); }));
+    }
+    async function loadDashboardData(){
+      const user = getActiveSessionUser();
+      if(!user){ showLoginOnly(); return; }
+      if($('dashboardUserLine')) $('dashboardUserLine').textContent = user.email || '';
+      if($('authUserBadge')) $('authUserBadge').textContent = user.email || 'Signed in';
+      if($('authTopbar')) $('authTopbar').classList.remove('hidden');
+      if($('dashboardSetupNotice')){ $('dashboardSetupNotice').classList.add('hidden'); $('dashboardSetupNotice').textContent = ''; }
+      try{
+        const memberRes = await window.supabase.from('case_members').select('case_id, role').eq('user_id', user.id);
+        if(memberRes.error) throw memberRes.error;
+        const memberRows = memberRes.data || [];
+        const caseIds = Array.from(new Set(memberRows.map(row => row.case_id).filter(Boolean)));
+        let caseRows = [];
+        if(caseIds.length){
+          const casesRes = await window.supabase.from('cases').select('id, name, created_by, created_at').in('id', caseIds).order('created_at', { ascending:false });
+          if(casesRes.error) throw casesRes.error;
+          caseRows = casesRes.data || [];
+        }
+        const caseById = new Map(caseRows.map(row => [row.id, row]));
+        authUi.cases = memberRows.map(row => ({ ...row, case_name: caseById.get(row.case_id)?.name || 'Untitled case', created_by: caseById.get(row.case_id)?.created_by || '' }));
+        renderDashboardCases();
+      }catch(e){
+        console.error('Dashboard load failed:', e);
+        authUi.cases = [];
+        renderDashboardCases();
+        if($('dashboardSetupNotice')){ $('dashboardSetupNotice').classList.remove('hidden'); $('dashboardSetupNotice').textContent = 'Dashboard setup is not complete yet. Confirm the new cases and case_members tables exist and that your user is linked to the case.'; }
+      }
+    }
+    function showDashboardOnly(){ hideAppChrome(); if($('authShell')) $('authShell').style.display = ''; if($('authGate')) $('authGate').style.display = 'none'; if($('dashboardView')) $('dashboardView').style.display = ''; if($('caseAdminPanel')) $('caseAdminPanel').classList.add('hidden'); loadDashboardData(); }
+    function openCaseFromDashboard(caseId){ if(!caseId) return; localStorage.setItem('murski_selected_case_id', caseId); const url = new URL(window.location.href); url.searchParams.set('case', caseId); url.searchParams.set('view', getInitialViewFromUrl()); window.location.href = url.pathname + '?' + url.searchParams.toString(); }
+    async function routeAfterAuth(){ const user = getActiveSessionUser(); if(!user){ showLoginOnly(); return; } if(CASE_ID){ showAppChrome(); return; } showDashboardOnly(); }
+
+    load();
+    syncOutlineFromSupabase();
+    syncDocumentsFromSupabase();
+    syncPeopleFromSupabase();
+    syncWitnessCellsFromSupabase();
+    syncTagsFromSupabase();
+    syncTagAssignmentsFromSupabase();
+    renderTags();
+    setDraftDocumentTagLinks(ui.newDocumentTagLinks || []);
+    if(CASE_ID){ renderDocuments(); renderPeople(); renderOutline(); renderExhibits(); setTab(getInitialViewFromUrl(), { pushState:false }); }
     $('dashboardBtn')?.addEventListener('click', ()=> showDashboardOnly());
-    $('signOutBtn')?.addEventListener('click', async ()=>{ await window.supabase.auth.signOut(); localStorage.removeItem('murski_selected_case_id'); window.location.href = window.location.pathname; });
+    $('signOutBtn')?.addEventListener('click', async ()=>{ await window.supabase.auth.signOut(); localStorage.removeItem('murski_selected_case_id'); const url = new URL(window.location.href); url.searchParams.delete('case'); window.location.href = url.pathname; });
     $('dashboardRefreshBtn')?.addEventListener('click', ()=> loadDashboardData());
     $('authSignInBtn')?.addEventListener('click', async ()=>{ try{ const email = $('authEmail').value.trim(); const password = $('authPassword').value; const { error } = await window.supabase.auth.signInWithPassword({ email, password }); if(error) throw error; toast('Signed in'); }catch(e){ alert(e.message || e); } });
     $('authSignUpBtn')?.addEventListener('click', async ()=>{ try{ const email = $('authSignupEmail').value.trim(); const password = $('authSignupPassword').value; const { error } = await window.supabase.auth.signUp({ email, password }); if(error) throw error; alert('Login created. The user can sign in after email confirmation if your Supabase project requires it.'); }catch(e){ alert(e.message || e); } });
