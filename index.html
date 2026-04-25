@@ -8,7 +8,6 @@
     const SUPABASE_URL = "https://ewemahyfoegkpzgpqnsr.supabase.co"
     const SUPABASE_KEY = "sb_publishable_0ddiJfYLmhk9maLNcYJakg_aUMkvWRO"
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     const urlParams = new URLSearchParams(window.location.search)
     const URL_CASE_ID = urlParams.get("case") || ""
     const STORED_CASE_ID = (() => {
@@ -31,29 +30,78 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     const INITIAL_VIEW = (urlParams.get("view") || "outline").toLowerCase()
     window.INITIAL_VIEW = INITIAL_VIEW
 
-    supabase.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    console.log("Password recovery detected");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-    const newPassword = prompt("Enter your new password:");
+    let passwordRecoveryHandled = false
 
-    if (!newPassword) {
-      alert("Password reset cancelled.");
-      return;
+    function isPasswordRecoveryUrl() {
+      const search = new URLSearchParams(window.location.search || "")
+      const hashText = String(window.location.hash || "").replace(/^#/, "")
+      const hash = new URLSearchParams(hashText)
+      return search.get("recovery") === "1" ||
+        search.get("type") === "recovery" ||
+        hash.get("type") === "recovery" ||
+        hashText.includes("type=recovery")
     }
 
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
-
-    if (error) {
-      alert("Error resetting password: " + error.message);
-    } else {
-      alert("Password updated! You can now log in.");
-      window.location.href = window.location.origin + window.location.pathname;
+    function cleanPasswordRecoveryUrl() {
+      const url = new URL(window.location.href)
+      url.searchParams.delete("recovery")
+      url.searchParams.delete("type")
+      url.searchParams.delete("code")
+      url.hash = ""
+      window.history.replaceState({}, document.title, url.pathname + (url.searchParams.toString() ? "?" + url.searchParams.toString() : ""))
     }
-  }
-});
+
+    async function handlePasswordRecoveryIfNeeded() {
+      if (passwordRecoveryHandled || !isPasswordRecoveryUrl()) return false
+      passwordRecoveryHandled = true
+
+      let session = null
+      for (let i = 0; i < 40; i += 1) {
+        const res = await supabase.auth.getSession()
+        session = res?.data?.session || null
+        if (session) break
+        await new Promise(resolve => setTimeout(resolve, 150))
+      }
+
+      if (!session) {
+        alert("Password reset link opened, but no Supabase recovery session was found. Please click Reset password again and use the newest email link.")
+        cleanPasswordRecoveryUrl()
+        return true
+      }
+
+      const newPassword = prompt("Enter the NEW password you want to use:")
+      if (!newPassword) {
+        alert("Password reset cancelled.")
+        await supabase.auth.signOut()
+        cleanPasswordRecoveryUrl()
+        return true
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) {
+        alert("Error setting password: " + error.message)
+        return true
+      }
+
+      alert("Password set successfully. Please sign in with your email and new password.")
+      await supabase.auth.signOut()
+      const url = new URL(window.location.href)
+      url.searchParams.delete("recovery")
+      url.searchParams.delete("type")
+      url.searchParams.delete("code")
+      url.hash = ""
+      window.location.href = url.pathname + (url.searchParams.toString() ? "?" + url.searchParams.toString() : "")
+      return true
+    }
+
+    supabase.auth.onAuthStateChange(async () => {
+      await handlePasswordRecoveryIfNeeded()
+    })
+
+    handlePasswordRecoveryIfNeeded()
+
     const DOCUMENT_BUCKET = "case-documents"
 
     window.supabase = supabase
@@ -8195,7 +8243,7 @@ function openStructuredDocEditor(docId){
       $('dashboardRefreshBtn')?.addEventListener('click', ()=> queueDashboardDataLoad());
       $('authSignInBtn')?.addEventListener('click', async ()=>{ try{ const email = $('authEmail').value.trim(); const password = $('authPassword').value; const { error } = await window.supabase.auth.signInWithPassword({ email, password }); if(error) throw error; toast('Signed in'); }catch(e){ alert(e.message || e); } });
       $('authSignUpBtn')?.addEventListener('click', async ()=>{ try{ const email = $('authSignupEmail').value.trim(); const password = $('authSignupPassword').value; const { error } = await window.supabase.auth.signUp({ email, password }); if(error) throw error; alert('Login created. The user can sign in after email confirmation if your Supabase project requires it.'); }catch(e){ alert(e.message || e); } });
-      $('authResetPwBtn')?.addEventListener('click', async ()=>{ try{ const email = ($('authEmail').value || $('authSignupEmail').value || '').trim(); if(!email) throw new Error('Enter the email first.'); const { error } = await window.supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.href.split('?')[0] }); if(error) throw error; alert('Password reset email sent.'); }catch(e){ alert(e.message || e); } });
+      $('authResetPwBtn')?.addEventListener('click', async ()=>{ try{ const email = ($('authEmail').value || $('authSignupEmail').value || '').trim(); if(!email) throw new Error('Enter the email first.'); const redirectUrl = new URL(window.location.origin + window.location.pathname); redirectUrl.searchParams.set('recovery', '1'); const { error } = await window.supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl.toString() }); if(error) throw error; alert('Password reset email sent.'); }catch(e){ alert(e.message || e); } });
       $('dashboardCreateCaseBtn')?.addEventListener('click', async ()=>{ try{ const user = getActiveSessionUser(); if(!user) throw new Error('Sign in first.'); const name = $('dashboardCaseName').value.trim(); if(!name) throw new Error('Enter a case name.'); const { data: caseRow, error } = await window.supabase.from('cases').insert({ name, created_by: user.id }).select().single(); if(error) throw error; const memberRes = await window.supabase.from('case_members').insert({ case_id: caseRow.id, user_id: user.id, role: 'admin' }); if(memberRes.error) throw memberRes.error; $('dashboardCaseName').value = ''; await loadDashboardData(); toast('Case created'); }catch(e){ alert(e.message || e); } });
       $('addMemberBtn')?.addEventListener('click', async ()=>{ try{ if(!authUi.selectedCase) throw new Error('Choose a case first.'); const email = $('memberEmail').value.trim().toLowerCase(); const role = $('memberRole').value || 'user'; if(!email) throw new Error('Enter the user email.'); const { data: profile, error: profileError } = await window.supabase.from('profiles').select('*').ilike('email', email).maybeSingle(); if(profileError) throw profileError; if(!profile || !profile.id) throw new Error('That email does not have a login/profile yet. Have them sign up first from the login box.'); const { error } = await window.supabase.from('case_members').upsert({ case_id: authUi.selectedCase, user_id: profile.id, role }, { onConflict:'case_id,user_id' }); if(error) throw error; $('memberEmail').value = ''; await loadCaseMembers(authUi.selectedCase); toast('User added to case'); }catch(e){ alert(e.message || e); } });
       const sessionRes = await window.supabase.auth.getSession();
