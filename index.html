@@ -8,6 +8,7 @@
     const SUPABASE_URL = "https://ewemahyfoegkpzgpqnsr.supabase.co"
     const SUPABASE_KEY = "sb_publishable_0ddiJfYLmhk9maLNcYJakg_aUMkvWRO"
 
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     const urlParams = new URLSearchParams(window.location.search)
     const URL_CASE_ID = urlParams.get("case") || ""
     const STORED_CASE_ID = (() => {
