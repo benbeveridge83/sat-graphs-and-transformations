@@ -31,72 +31,29 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     const INITIAL_VIEW = (urlParams.get("view") || "outline").toLowerCase()
     window.INITIAL_VIEW = INITIAL_VIEW
 
-    const APP_URL = "https://benbeveridge83.github.io/MurskiCasePlanner/"
+    supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    console.log("Password recovery detected");
 
-    function isPasswordRecoveryUrl() {
-      const search = new URLSearchParams(window.location.search || "")
-      const hashText = String(window.location.hash || "").replace(/^#/, "")
-      const hash = new URLSearchParams(hashText)
-      return search.get("recovery") === "1" ||
-        search.get("type") === "recovery" ||
-        hash.get("type") === "recovery" ||
-        hashText.includes("type=recovery")
+    const newPassword = prompt("Enter your new password:");
+
+    if (!newPassword) {
+      alert("Password reset cancelled.");
+      return;
     }
 
-    function cleanAuthUrl() {
-      const url = new URL(window.location.href)
-      url.searchParams.delete("recovery")
-      url.searchParams.delete("type")
-      url.searchParams.delete("code")
-      url.hash = ""
-      window.history.replaceState({}, document.title, url.pathname + (url.searchParams.toString() ? "?" + url.searchParams.toString() : ""))
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      alert("Error resetting password: " + error.message);
+    } else {
+      alert("Password updated! You can now log in.");
+      window.location.href = window.location.origin + window.location.pathname;
     }
-
-    let passwordRecoveryHandled = false
-    async function handlePasswordRecoveryIfNeeded() {
-      if (passwordRecoveryHandled || !isPasswordRecoveryUrl()) return false
-      passwordRecoveryHandled = true
-
-      let session = null
-      for (let i = 0; i < 40; i += 1) {
-        const res = await supabase.auth.getSession()
-        session = res?.data?.session || null
-        if (session) break
-        await new Promise(resolve => setTimeout(resolve, 150))
-      }
-
-      if (!session) {
-        alert("Password reset link opened, but no Supabase recovery session was found. Please click Reset password again and use the newest email link.")
-        cleanAuthUrl()
-        return true
-      }
-
-      const newPassword = prompt("Enter the NEW password you want to use:")
-      if (!newPassword) {
-        alert("Password reset cancelled.")
-        await supabase.auth.signOut()
-        cleanAuthUrl()
-        return true
-      }
-
-      const { error } = await supabase.auth.updateUser({ password: newPassword })
-      if (error) {
-        alert("Error setting password: " + error.message)
-        return true
-      }
-
-      alert("Password set successfully. Please sign in with your email and new password.")
-      await supabase.auth.signOut()
-      window.location.href = APP_URL
-      return true
-    }
-
-    supabase.auth.onAuthStateChange(async () => {
-      await handlePasswordRecoveryIfNeeded()
-    })
-
-    handlePasswordRecoveryIfNeeded()
-
+  }
+});
     const DOCUMENT_BUCKET = "case-documents"
 
     window.supabase = supabase
@@ -8237,44 +8194,8 @@ function openStructuredDocEditor(docId){
       $('signOutBtn')?.addEventListener('click', async ()=>{ await window.supabase.auth.signOut(); localStorage.removeItem('murski_selected_case_id'); const url = new URL(window.location.href); url.searchParams.delete('case'); window.location.href = url.pathname; });
       $('dashboardRefreshBtn')?.addEventListener('click', ()=> queueDashboardDataLoad());
       $('authSignInBtn')?.addEventListener('click', async ()=>{ try{ const email = $('authEmail').value.trim(); const password = $('authPassword').value; const { error } = await window.supabase.auth.signInWithPassword({ email, password }); if(error) throw error; toast('Signed in'); }catch(e){ alert(e.message || e); } });
-      $('authSignUpBtn')?.addEventListener('click', async ()=>{
-        try{
-          const email = $('authSignupEmail').value.trim();
-          const password = $('authSignupPassword').value;
-          if(!email) throw new Error('Enter the email first.');
-          if(!password) throw new Error('Enter a password.');
-
-          const { error } = await window.supabase.auth.signUp({
-            email,
-            password,
-            options: { emailRedirectTo: APP_URL }
-          });
-
-          if(error) throw error;
-          alert('Login created. Check email to confirm it.');
-        }catch(e){
-          alert(e.message || e);
-        }
-      });
-
-      $('authResetPwBtn')?.addEventListener('click', async ()=>{
-        try{
-          const email = ($('authEmail').value || $('authSignupEmail').value || '').trim();
-          if(!email) throw new Error('Enter the email first.');
-
-          const redirectUrl = new URL(APP_URL);
-          redirectUrl.searchParams.set('recovery', '1');
-
-          const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: redirectUrl.toString()
-          });
-
-          if(error) throw error;
-          alert('Password reset email sent.');
-        }catch(e){
-          alert(e.message || e);
-        }
-      }); if(error) throw error; alert('Password reset email sent.'); }catch(e){ alert(e.message || e); } });
+      $('authSignUpBtn')?.addEventListener('click', async ()=>{ try{ const email = $('authSignupEmail').value.trim(); const password = $('authSignupPassword').value; const { error } = await window.supabase.auth.signUp({ email, password }); if(error) throw error; alert('Login created. The user can sign in after email confirmation if your Supabase project requires it.'); }catch(e){ alert(e.message || e); } });
+      $('authResetPwBtn')?.addEventListener('click', async ()=>{ try{ const email = ($('authEmail').value || $('authSignupEmail').value || '').trim(); if(!email) throw new Error('Enter the email first.'); const { error } = await window.supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.href.split('?')[0] }); if(error) throw error; alert('Password reset email sent.'); }catch(e){ alert(e.message || e); } });
       $('dashboardCreateCaseBtn')?.addEventListener('click', async ()=>{ try{ const user = getActiveSessionUser(); if(!user) throw new Error('Sign in first.'); const name = $('dashboardCaseName').value.trim(); if(!name) throw new Error('Enter a case name.'); const { data: caseRow, error } = await window.supabase.from('cases').insert({ name, created_by: user.id }).select().single(); if(error) throw error; const memberRes = await window.supabase.from('case_members').insert({ case_id: caseRow.id, user_id: user.id, role: 'admin' }); if(memberRes.error) throw memberRes.error; $('dashboardCaseName').value = ''; await loadDashboardData(); toast('Case created'); }catch(e){ alert(e.message || e); } });
       $('addMemberBtn')?.addEventListener('click', async ()=>{ try{ if(!authUi.selectedCase) throw new Error('Choose a case first.'); const email = $('memberEmail').value.trim().toLowerCase(); const role = $('memberRole').value || 'user'; if(!email) throw new Error('Enter the user email.'); const { data: profile, error: profileError } = await window.supabase.from('profiles').select('*').ilike('email', email).maybeSingle(); if(profileError) throw profileError; if(!profile || !profile.id) throw new Error('That email does not have a login/profile yet. Have them sign up first from the login box.'); const { error } = await window.supabase.from('case_members').upsert({ case_id: authUi.selectedCase, user_id: profile.id, role }, { onConflict:'case_id,user_id' }); if(error) throw error; $('memberEmail').value = ''; await loadCaseMembers(authUi.selectedCase); toast('User added to case'); }catch(e){ alert(e.message || e); } });
       const sessionRes = await window.supabase.auth.getSession();
@@ -9902,6 +9823,70 @@ ${entry.summary}`).toLowerCase().includes(q)) return false;
   }, 0);
 })();
 
+
+// --- User restriction patch: regular users cannot see AI or create cases ---
+(function(){
+  function hasAdminCase(){
+    try{
+      return Array.isArray(authUi && authUi.cases) && authUi.cases.some(item => String((item && item.role) || '').toLowerCase() === 'admin');
+    }catch(e){ return false; }
+  }
+  function isCaseAdmin(){
+    try{ return String((authUi && authUi.currentCaseRole) || '').toLowerCase() === 'admin'; }catch(e){ return false; }
+  }
+  function canUseAdminTools(){
+    return window.CASE_ID ? isCaseAdmin() : hasAdminCase();
+  }
+  window.murskiUserRestrictionPatch = { hasAdminCase, isCaseAdmin, canUseAdminTools };
+  isCaseChatUserAllowed = function(){ return canUseAdminTools(); };
+  updateCaseChatAccess = function(){
+    const allowed = canUseAdminTools();
+    const launcher = $('caseChatLauncher');
+    const topBtn = $('caseChatTopBtn');
+    const panel = $('caseChatPanel');
+    if(launcher) launcher.style.display = allowed ? 'inline-flex' : 'none';
+    if(topBtn) topBtn.style.display = allowed ? 'inline-flex' : 'none';
+    if(!allowed && panel) panel.classList.remove('open');
+  };
+  const priorApplyCaseRoleVisibility = typeof applyCaseRoleVisibility === 'function' ? applyCaseRoleVisibility : null;
+  applyCaseRoleVisibility = function(){
+    if(priorApplyCaseRoleVisibility) priorApplyCaseRoleVisibility();
+    updateCaseChatAccess();
+  };
+  const priorRenderDashboardCases = typeof renderDashboardCases === 'function' ? renderDashboardCases : null;
+  renderDashboardCases = function(){
+    if(priorRenderDashboardCases) priorRenderDashboardCases();
+    const canCreate = hasAdminCase();
+    const btn = $('dashboardCreateCaseBtn');
+    const card = btn ? btn.closest('.card') : null;
+    if(card) card.style.display = canCreate ? '' : 'none';
+    if(btn) btn.disabled = !canCreate;
+    updateCaseChatAccess();
+  };
+  document.addEventListener('click', function(ev){
+    const btn = ev.target && ev.target.closest ? ev.target.closest('#dashboardCreateCaseBtn, #caseChatTopBtn, #caseChatLauncher') : null;
+    if(!btn) return;
+    if(btn.id === 'dashboardCreateCaseBtn' && !hasAdminCase()){
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      alert('Only case admins can create new cases.');
+      return;
+    }
+    if((btn.id === 'caseChatTopBtn' || btn.id === 'caseChatLauncher') && !canUseAdminTools()){
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      updateCaseChatAccess();
+    }
+  }, true);
+  setInterval(function(){
+    const canCreate = hasAdminCase();
+    const btn = $('dashboardCreateCaseBtn');
+    const card = btn ? btn.closest('.card') : null;
+    if(card) card.style.display = canCreate ? '' : 'none';
+    if(btn) btn.disabled = !canCreate;
+    updateCaseChatAccess();
+  }, 500);
+})();
 </script>
 </body>
 </html><!-- columns and worksheet resize fix confirmed -->
