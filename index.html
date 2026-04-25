@@ -30,21 +30,26 @@
     const INITIAL_VIEW = (urlParams.get("view") || "outline").toLowerCase()
     window.INITIAL_VIEW = INITIAL_VIEW
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-supabase.auth.onAuthStateChange(async (event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
+    console.log("Password recovery detected");
+
     const newPassword = prompt("Enter your new password:");
 
-    if (newPassword) {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
+    if (!newPassword) {
+      alert("Password reset cancelled.");
+      return;
+    }
 
-      if (error) {
-        alert("Error resetting password: " + error.message);
-      } else {
-        alert("Password updated! You can now log in.");
-      }
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      alert("Error resetting password: " + error.message);
+    } else {
+      alert("Password updated! You can now log in.");
+      window.location.href = window.location.origin + window.location.pathname;
     }
   }
 });
