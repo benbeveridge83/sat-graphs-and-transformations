@@ -8251,8 +8251,7 @@ function openStructuredDocEditor(docId){
       email,
       password,
       options: {
-emailRedirectTo: "https://benbeveridge83.github.io/MurskiCasePlanner/index.html"      }
-    });
+emailRedirectTo: window.location.origin + window.location.pathname    });
 
     if(error) throw error;
     alert('Login created. Check email to confirm it.');
