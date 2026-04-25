@@ -31,6 +31,23 @@
     window.INITIAL_VIEW = INITIAL_VIEW
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    const newPassword = prompt("Enter your new password:");
+
+    if (newPassword) {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        alert("Error resetting password: " + error.message);
+      } else {
+        alert("Password updated! You can now log in.");
+      }
+    }
+  }
+});
     const DOCUMENT_BUCKET = "case-documents"
 
     window.supabase = supabase
